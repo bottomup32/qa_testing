@@ -1,0 +1,950 @@
+2025-03-14 18:40:47,254 - INFO - 처리 시작: 총 340개 질문, 336개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:40:47,354 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:40:47,374 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:40:47,381 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:40:47,392 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:03,178 - INFO - 처리 시작: 총 340개 질문, 336개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:41:03,191 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:03,200 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:03,211 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:03,223 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:11,432 - INFO - 처리 시작: 총 340개 질문, 336개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:41:11,446 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:11,458 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:11,469 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:41:11,481 - ERROR - 배치 처리 결과 처리 중 오류: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 455, in __getitem__
+    return self._getitem(widget_id, key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 500, in _getitem
+    raise KeyError
+KeyError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 129, in __getattr__
+    return self[key]
+           ~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 100, in __getitem__
+    return get_session_state()[key]
+           ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\safe_session_state.py", line 94, in __getitem__
+    return self._state[key]
+           ~~~~~~~~~~~^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state.py", line 457, in __getitem__
+    raise KeyError(_missing_key_error_message(key))
+KeyError: 'st.session_state has no key "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 312, in process_file
+    results = future.result()
+              ^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py", line 401, in __get_result
+    raise self._exception
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "F:\AI\QA_Testing\app.py", line 157, in process_batch
+    if not st.session_state.processing:  # 중지 버튼 클릭 시 즉시 반환
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\hanso\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\state\session_state_proxy.py", line 131, in __getattr__
+    raise AttributeError(_missing_attr_error_message(key))
+AttributeError: st.session_state has no attribute "processing". Did you forget to initialize it? More info: https://docs.streamlit.io/develop/concepts/architecture/session-state#initialization
+
+2025-03-14 18:45:22,460 - INFO - 처리 시작: 총 340개 질문, 340개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:45:39,283 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:40,549 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:41,809 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:41,886 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:42,983 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:43,508 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:44,191 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:48,919 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:50,645 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:55,425 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:45:56,154 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:46:02,774 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:46:03,529 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:46:03,529 - INFO - 2.0초 후 재시도 (시도 1/3)
+2025-03-14 18:46:05,044 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:46:09,266 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:46:11,218 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:46:11,218 - INFO - 1.9초 후 재시도 (시도 1/3)
+2025-03-14 18:46:13,347 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:46:25,961 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:46:25,962 - INFO - 2.2초 후 재시도 (시도 2/3)
+2025-03-14 18:46:31,740 - INFO - 처리 시작: 총 340개 질문, 340개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:46:33,473 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:46:33,552 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:46:33,552 - INFO - 2.9초 후 재시도 (시도 2/3)
+2025-03-14 18:46:52,198 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:46:52,199 - INFO - 1.8초 후 재시도 (시도 1/3)
+2025-03-14 18:46:55,321 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:46:55,322 - INFO - 1.5초 후 재시도 (시도 1/3)
+2025-03-14 18:47:12,817 - INFO - 처리 시작: 총 340개 질문, 336개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:47:13,052 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:13,053 - INFO - 1.5초 후 재시도 (시도 1/3)
+2025-03-14 18:47:19,037 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:47:20,285 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:47:25,539 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
+2025-03-14 18:47:33,142 - INFO - 처리 시작: 총 340개 질문, 320개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:47:33,275 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:33,276 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:47:33,290 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:33,291 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:47:34,418 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:34,419 - INFO - 1.9초 후 재시도 (시도 1/3)
+2025-03-14 18:47:35,003 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:35,003 - INFO - 3.8초 후 재시도 (시도 2/3)
+2025-03-14 18:47:40,836 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:40,836 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:47:41,375 - INFO - 처리 시작: 총 340개 질문, 320개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:47:51,148 - INFO - 처리 시작: 총 340개 질문, 320개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:47:53,033 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:53,033 - INFO - 1.9초 후 재시도 (시도 1/3)
+2025-03-14 18:47:53,587 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:53,587 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:47:53,618 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:53,618 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:53,619 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:47:53,620 - INFO - 1.6초 후 재시도 (시도 1/3)
+2025-03-14 18:47:55,101 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:55,101 - INFO - 3.3초 후 재시도 (시도 2/3)
+2025-03-14 18:47:55,192 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:55,193 - INFO - 3.4초 후 재시도 (시도 2/3)
+2025-03-14 18:47:56,782 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:47:56,783 - INFO - 2.5초 후 재시도 (시도 2/3)
+2025-03-14 18:47:59,357 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:01,861 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:01,862 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:01,862 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:01,862 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:01,862 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:48:01,862 - INFO - 1.2초 후 재시도 (시도 1/3)
+2025-03-14 18:48:01,863 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:48:01,863 - INFO - 2.0초 후 재시도 (시도 1/3)
+2025-03-14 18:48:02,732 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:02,733 - INFO - 3.0초 후 재시도 (시도 2/3)
+2025-03-14 18:48:05,078 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:05,078 - INFO - 1.8초 후 재시도 (시도 1/3)
+2025-03-14 18:48:11,605 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:11,605 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:11,606 - INFO - 1.2초 후 재시도 (시도 1/3)
+2025-03-14 18:48:11,606 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:48:11,620 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:11,621 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:48:11,635 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:11,636 - INFO - 1.8초 후 재시도 (시도 1/3)
+2025-03-14 18:48:12,054 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:12,055 - INFO - 1.5초 후 재시도 (시도 1/3)
+2025-03-14 18:48:15,184 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:15,184 - INFO - 2.8초 후 재시도 (시도 2/3)
+2025-03-14 18:48:15,386 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:15,387 - INFO - 2.5초 후 재시도 (시도 2/3)
+2025-03-14 18:48:15,466 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:15,466 - INFO - 3.9초 후 재시도 (시도 2/3)
+2025-03-14 18:48:15,653 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:15,654 - INFO - 2.5초 후 재시도 (시도 2/3)
+2025-03-14 18:48:18,856 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:19,088 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:19,772 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:19,910 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:19,911 - INFO - 1.3초 후 재시도 (시도 1/3)
+2025-03-14 18:48:23,432 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:23,432 - INFO - 2.0초 후 재시도 (시도 2/3)
+2025-03-14 18:48:23,540 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:23,540 - INFO - 2.2초 후 재시도 (시도 2/3)
+2025-03-14 18:48:23,742 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:23,742 - INFO - 2.7초 후 재시도 (시도 2/3)
+2025-03-14 18:48:24,279 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:24,280 - INFO - 3.4초 후 재시도 (시도 2/3)
+2025-03-14 18:48:26,265 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:27,340 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:27,341 - INFO - 2.2초 후 재시도 (시도 2/3)
+2025-03-14 18:48:33,111 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:33,112 - INFO - 2.3초 후 재시도 (시도 2/3)
+2025-03-14 18:48:33,235 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:33,236 - INFO - 2.3초 후 재시도 (시도 2/3)
+2025-03-14 18:48:33,481 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:33,482 - INFO - 2.3초 후 재시도 (시도 2/3)
+2025-03-14 18:48:33,850 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:33,850 - INFO - 2.3초 후 재시도 (시도 2/3)
+2025-03-14 18:48:34,005 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:34,006 - INFO - 3.3초 후 재시도 (시도 2/3)
+2025-03-14 18:48:38,305 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:38,397 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:38,632 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:39,409 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:39,410 - INFO - 1.3초 후 재시도 (시도 1/3)
+2025-03-14 18:48:39,645 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:39,646 - INFO - 1.6초 후 재시도 (시도 1/3)
+2025-03-14 18:48:39,787 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:41,215 - INFO - 처리 시작: 총 340개 질문, 320개 처리 예정, 4개 스레드, 배치 크기 5
+2025-03-14 18:48:41,715 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:41,715 - INFO - 3.2초 후 재시도 (시도 2/3)
+2025-03-14 18:48:45,897 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:46,238 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:46,830 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:46,830 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:48:46,907 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:48,191 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:50,051 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:55,889 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:56,014 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:56,231 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:56,570 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:57,765 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:58,863 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:58,864 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:48:58,941 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:58,941 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:48:59,203 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:48:59,203 - INFO - 1.7초 후 재시도 (시도 1/3)
+2025-03-14 18:49:00,328 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:00,328 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:49:01,181 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:01,182 - INFO - 3.9초 후 재시도 (시도 2/3)
+2025-03-14 18:49:01,666 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:01,666 - INFO - 3.9초 후 재시도 (시도 2/3)
+2025-03-14 18:49:01,712 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:01,713 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:01,713 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:01,713 - INFO - 1.7초 후 재시도 (시도 1/3)
+2025-03-14 18:49:01,713 - INFO - 1.9초 후 재시도 (시도 1/3)
+2025-03-14 18:49:01,713 - INFO - 1.7초 후 재시도 (시도 1/3)
+2025-03-14 18:49:01,727 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:01,728 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:49:05,355 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:06,469 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:06,469 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:49:06,810 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:06,810 - INFO - 1.2초 후 재시도 (시도 1/3)
+2025-03-14 18:49:07,461 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:07,461 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:49:08,722 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:08,722 - INFO - 3.1초 후 재시도 (시도 2/3)
+2025-03-14 18:49:08,768 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:08,768 - INFO - 1.7초 후 재시도 (시도 1/3)
+2025-03-14 18:49:10,608 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:10,608 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:49:16,437 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:16,438 - INFO - 2.0초 후 재시도 (시도 1/3)
+2025-03-14 18:49:16,576 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:16,577 - INFO - 1.6초 후 재시도 (시도 1/3)
+2025-03-14 18:49:16,789 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:16,790 - INFO - 1.2초 후 재시도 (시도 1/3)
+2025-03-14 18:49:17,131 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:17,132 - INFO - 1.3초 후 재시도 (시도 1/3)
+2025-03-14 18:49:18,325 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:18,325 - INFO - 1.8초 후 재시도 (시도 1/3)
+2025-03-14 18:49:20,713 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:20,714 - INFO - 3.6초 후 재시도 (시도 2/3)
+2025-03-14 18:49:20,775 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:20,776 - INFO - 2.5초 후 재시도 (시도 2/3)
+2025-03-14 18:49:21,406 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:21,407 - INFO - 3.0초 후 재시도 (시도 2/3)
+2025-03-14 18:49:22,162 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:22,162 - INFO - 2.0초 후 재시도 (시도 2/3)
+2025-03-14 18:49:23,298 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:23,298 - INFO - 3.0초 후 재시도 (시도 2/3)
+2025-03-14 18:49:23,832 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:23,832 - INFO - 2.8초 후 재시도 (시도 2/3)
+2025-03-14 18:49:23,927 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:23,928 - INFO - 3.9초 후 재시도 (시도 2/3)
+2025-03-14 18:49:24,113 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:24,118 - INFO - 2.9초 후 재시도 (시도 2/3)
+2025-03-14 18:49:25,540 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:25,898 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:25,898 - INFO - 1.4초 후 재시도 (시도 1/3)
+2025-03-14 18:49:25,974 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:28,331 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:28,331 - INFO - 3.0초 후 재시도 (시도 2/3)
+2025-03-14 18:49:28,455 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:28,456 - INFO - 2.0초 후 재시도 (시도 2/3)
+2025-03-14 18:49:29,280 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:29,281 - INFO - 4.0초 후 재시도 (시도 2/3)
+2025-03-14 18:49:30,919 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:30,920 - INFO - 3.5초 후 재시도 (시도 2/3)
+2025-03-14 18:49:32,177 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:32,178 - INFO - 3.0초 후 재시도 (시도 2/3)
+2025-03-14 18:49:32,269 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:38,450 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:38,450 - INFO - 2.8초 후 재시도 (시도 2/3)
+2025-03-14 18:49:38,576 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:38,577 - INFO - 2.8초 후 재시도 (시도 2/3)
+2025-03-14 18:49:38,887 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:38,888 - INFO - 2.7초 후 재시도 (시도 2/3)
+2025-03-14 18:49:38,918 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:38,918 - INFO - 3.1초 후 재시도 (시도 2/3)
+2025-03-14 18:49:40,589 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:40,590 - INFO - 2.8초 후 재시도 (시도 2/3)
+2025-03-14 18:49:43,693 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:44,613 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:44,723 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:44,831 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:46,077 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:46,077 - INFO - 2.0초 후 재시도 (시도 1/3)
+2025-03-14 18:49:46,501 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:46,502 - INFO - 1.3초 후 재시도 (시도 1/3)
+2025-03-14 18:49:46,816 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:47,102 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:47,494 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:47,776 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:47,777 - INFO - 2.8초 후 재시도 (시도 2/3)
+2025-03-14 18:49:48,277 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:50,935 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:51,870 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:52,806 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:52,806 - INFO - 1.3초 후 재시도 (시도 1/3)
+2025-03-14 18:49:53,754 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:54,872 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:49:55,615 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:01,770 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:01,880 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:02,080 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:02,438 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:03,820 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:04,269 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:04,269 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:50:05,146 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:05,146 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:50:05,285 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:05,286 - INFO - 1.5초 후 재시도 (시도 1/3)
+2025-03-14 18:50:05,391 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:05,391 - INFO - 1.8초 후 재시도 (시도 1/3)
+2025-03-14 18:50:07,366 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:07,366 - INFO - 1.1초 후 재시도 (시도 1/3)
+2025-03-14 18:50:07,659 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:07,660 - INFO - 1.6초 후 재시도 (시도 1/3)
+2025-03-14 18:50:08,028 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:08,028 - INFO - 1.7초 후 재시도 (시도 1/3)
+2025-03-14 18:50:08,263 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:08,263 - INFO - 3.0초 후 재시도 (시도 2/3)
+2025-03-14 18:50:08,495 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:08,496 - INFO - 3.5초 후 재시도 (시도 2/3)
+2025-03-14 18:50:08,819 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:50:08,820 - INFO - 1.0초 후 재시도 (시도 1/3)
+2025-03-14 18:50:11,079 - WARNING - API 요청 타임아웃 (20초 초과)
+2025-03-14 18:56:07,112 - ERROR - 응답 처리 오류: 'matches'
+Traceback (most recent call last):
+  File "F:\AI\QA_Testing\app.py", line 162, in process_response
+    for match in response["intent_data"]["matches"][:10]]
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'matches'
+
