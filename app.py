@@ -1,613 +1,1057 @@
+import streamlit as st
 import pandas as pd
 import requests
 import json
-import textwrap
-import streamlit as st
-from io import BytesIO
 import time
 import os
-import concurrent.futures
-import pickle
-from tqdm.auto import tqdm
-import logging
-import traceback
-import random
-import threading
+from io import BytesIO
+import tempfile
+import xlsxwriter
+from datetime import datetime
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO, 
-                   format='%(asctime)s - %(levelname)s - %(message)s',
-                   handlers=[logging.FileHandler("api_test.log"), logging.StreamHandler()])
-logger = logging.getLogger(__name__)
+# 앱 제목 설정
+st.set_page_config(page_title="API 테스트 자동화 도구", layout="wide")
 
-# 기본 API 설정 (변경 없이 사용)
-API_CONFIGS = {
-    "Default API": {
-        "url": "https://ai-human-chatbot-roasu.koreacentral.inference.ml.azure.com/score",
-        "headers": {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer BV3RjJz66FNP82LSkw6SU1905E57UgOMizCuAe3y63atc5Wwj5HXJQQJ99BCAAAAAAAAAAAAINFRAZML1o4N",
-            "azureml-model-deployment": "ai-human-chatbot-roasu-4"
-        }
+# 앱 스타일 설정
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 30px;
+        font-weight: bold;
+        color: #1E88E5;
+        margin-bottom: 20px;
+    }
+    .sub-header {
+        font-size: 20px;
+        font-weight: bold;
+        color: #004D40;
+        margin-top: 20px;
+    }
+    .info-text {
+        font-size: 16px;
+        color: #37474F;
+    }
+    .success-text {
+        color: #2E7D32;
+        font-weight: bold;
+    }
+    .error-text {
+        color: #D32F2F;
+        font-weight: bold;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="main-header">API 테스트 자동화 도구</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="info-text">
+CSV 또는 Excel 파일에서 질문을 로드하고 API에 배치로 요청하거나 단일 질문을 테스트할 수 있습니다.
+</div>
+""", unsafe_allow_html=True)
+
+# 세션 상태 초기화
+if 'temp_results' not in st.session_state:
+    st.session_state.temp_results = None
+if 'temp_filename' not in st.session_state:
+    st.session_state.temp_filename = None
+# 중지 플래그 및 실시간 결과 초기화
+if 'stop_processing' not in st.session_state:
+    st.session_state.stop_processing = False
+if 'live_results' not in st.session_state:
+    st.session_state.live_results = None
+if 'is_processing' not in st.session_state:
+    st.session_state.is_processing = False
+
+# API 설정 데이터 (사이드바보다 먼저 정의)
+API_DATASETS = {
+    "Hans": {
+        "index": "faiss_index/embedding dataset-0314-Hans-0313_v20250314_222213.index",
+        "metadata": "faiss_index/embedding dataset-0314-Hans-0313_v20250314_222213.csv"
     },
-    "Backup API": {
-        "url": "https://ai-human-chatbot-roasu-backup.koreacentral.inference.ml.azure.com/score",
-        "headers": {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer BACKUP_TOKEN",
-            "azureml-model-deployment": "ai-human-chatbot-roasu-4"
-        }
+    "Nam": {
+        "index": "faiss_index/embedding dataset-0314-Nam-0313_v20250315_002250.index",
+        "metadata": "faiss_index/embedding dataset-0314-Nam-0313_v20250315_002250.csv"
+    },
+    "Yeom": {
+        "index": "faiss_index/embedding dataset-0314-Yeom-0313_v20250315_002545.index",
+        "metadata": "faiss_index/embedding dataset-0314-Yeom-0313_v20250315_002545.csv"
     }
 }
 
-# 임시 파일 저장 디렉토리
-TEMP_DIR = "temp_data"
-os.makedirs(TEMP_DIR, exist_ok=True)
+# API 엔드포인트와 인증 데이터 (제공된 curl 명령과 동일하게 업데이트)
+API_ENDPOINT = "https://ai-human-chatbot-roasu.koreacentral.inference.ml.azure.com/score"
+API_HEADERS = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer BV3RjJz66FNP82LSkw6SU1905E57UgOMizCuAe3y63atc5Wwj5HXJQQJ99BCAAAAAAAAAAAAINFRAZML1o4N",
+    "azureml-model-deployment": "ai-human-chatbot-roasu-4"
+}
 
-# 전역 변수 (스레드 안전)
-class ProcessingState:
-    def __init__(self):
-        self.is_processing = False
-        self._lock = threading.Lock()
+# 사이드바 설정
+with st.sidebar:
+    st.markdown('<div class="sub-header">API 테스트 자동화 도구</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="info-text">
+    이 도구는 다양한 API 설정으로 질문을 테스트하고 결과를 비교할 수 있습니다.
+    </div>
+    """, unsafe_allow_html=True)
     
-    def start(self):
-        with self._lock:
-            self.is_processing = True
+    st.markdown("---")
     
-    def stop(self):
-        with self._lock:
-            self.is_processing = False
+    st.markdown('<div class="sub-header">API 정보</div>', unsafe_allow_html=True)
+    st.code("""
+엔드포인트: https://ai-human-chatbot-roasu.koreacentral.inference.ml.azure.com/score
+헤더:
+  - Content-Type: application/json
+  - Authorization: Bearer BV3RjJz6...
+  - azureml-model-deployment: ai-human-chatbot-roasu-4
+    """)
     
-    def is_active(self):
-        with self._lock:
-            return self.is_processing
+    st.markdown("---")
+    
+    st.markdown('<div class="sub-header">데이터셋 정보</div>', unsafe_allow_html=True)
+    for dataset_name, info in API_DATASETS.items():
+        with st.expander(f"{dataset_name} 데이터셋"):
+            st.markdown(f"**인덱스 파일:** `{info['index']}`")
+            st.markdown(f"**메타데이터 파일:** `{info['metadata']}`")
+    
+    st.markdown("---")
+    
+    st.markdown('<div class="sub-header">사용 방법</div>', unsafe_allow_html=True)
+    with st.expander("배치 테스트 방법"):
+        st.markdown("""
+        1. '배치 테스트' 탭 선택
+        2. 테스트할 데이터셋 선택 또는 여러 데이터셋 비교 모드 선택
+        3. CSV 또는 Excel 파일 업로드 (첫 번째 컬럼을 질문으로 사용)
+        4. 배치 크기 및 타임아웃 설정
+        5. API 테스트 실행 버튼 클릭
+        6. 테스트 완료 후 결과 파일 다운로드
+        """)
+    
+    with st.expander("단일 테스트 방법"):
+        st.markdown("""
+        1. '단일 테스트' 탭 선택
+        2. 단일 데이터셋 또는 비교 모드 선택
+        3. 질문 입력
+        4. 테스트 실행 버튼 클릭
+        5. 결과 확인
+        """)
+    
+    st.markdown("---")
+    
+    st.markdown("""
+    <div class="info-text" style="font-size: 12px; text-align: center;">
+    © 2025 API 테스트 자동화 도구<br>
+    버전 1.0.0
+    </div>
+    """, unsafe_allow_html=True)
 
-# 전역 상태 객체 생성
-processing_state = ProcessingState()
-
-def query_api(api_name, question, top_k, index_path, metadata_path, timeout=20, max_retries=3):
-    """API에 질의하고 응답을 반환 (타임아웃 기본값 20초, 최대 재시도 횟수 추가)"""
-    retries = 0
-    while retries < max_retries:
+# API 요청 함수 개선
+def call_api(query, dataset_name, timeout=10, max_retries=3, show_debug=False):
+    """API 호출 및 응답 처리 함수"""
+    dataset_info = API_DATASETS[dataset_name]
+    
+    # payload 구성 - curl 명령 형식에 맞춤
+    payload = {
+        "user_query": query,
+        "top_k": "10",
+        "index_path": dataset_info["index"],
+        "metadata_path": dataset_info["metadata"]
+    }
+    
+    # 디버깅용: 요청 페이로드와 헤더 출력 (show_debug가 True인 경우)
+    if show_debug:
+        st.write("API 요청 정보:")
+        st.json({
+            "endpoint": API_ENDPOINT,
+            "headers": API_HEADERS,
+            "payload": payload
+        })
+    
+    retry_count = 0
+    while retry_count < max_retries:
         try:
-            api_config = API_CONFIGS.get(api_name)
-            if api_config is None:
-                api_config = API_CONFIGS["Default API"]
-                logger.warning(f"'{api_name}' API 설정을 찾을 수 없어 Default API를 사용합니다.")
+            # 요청 전송
+            response = requests.post(API_ENDPOINT, headers=API_HEADERS, json=payload, timeout=timeout)
             
-            payload = json.dumps({
-                "user_query": question,
-                "top_k": top_k,
-                "index_path": index_path,
-                "metadata_path": metadata_path
-            })
-            
-            response = requests.post(
-                api_config["url"],
-                headers=api_config["headers"],
-                data=payload,
-                timeout=timeout
-            )
+            # 응답 코드 확인
+            if show_debug:
+                st.write(f"API 응답 상태 코드: {response.status_code}")
+                st.write(f"응답 헤더: {dict(response.headers)}")
             
             if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 429:  # Too Many Requests
-                retry_after = random.uniform(1, 3) * (retries + 1)  # 지수 백오프 + 지터 적용
-                logger.warning(f"API 속도 제한 감지. {retry_after:.1f}초 후 재시도 (시도 {retries+1}/{max_retries})")
-                time.sleep(retry_after)
-                retries += 1
+                try:
+                    # 응답 파싱
+                    json_response = response.json()
+                    
+                    # 디버깅: 응답 확인
+                    if show_debug:
+                        st.write("원본 API 응답 내용:")
+                        st.json(json_response)
+                    
+                    return json_response
+                except Exception as e:
+                    if show_debug:
+                        st.error(f"API 응답 파싱 오류: {str(e)}")
+                        st.write("응답 텍스트:", response.text[:500])  # 처음 500자만 표시
+                    return {"error": f"API 응답 파싱 오류: {str(e)}"}
+            elif response.status_code == 429:  # Rate limit 오류
+                retry_count += 1
+                wait_time = min(2 ** retry_count, 30)  # 지수 백오프
+                if show_debug:
+                    st.warning(f"Rate limit 초과, {wait_time}초 후 재시도 ({retry_count}/{max_retries})")
+                time.sleep(wait_time)
                 continue
             else:
-                error_msg = f"API 응답 오류 (상태 코드: {response.status_code}, 메시지: {response.text})"
-                logger.error(error_msg)
-                if retries < max_retries - 1:
-                    retry_after = random.uniform(1, 2) * (retries + 1)
-                    logger.info(f"{retry_after:.1f}초 후 재시도 (시도 {retries+1}/{max_retries})")
-                    time.sleep(retry_after)
-                    retries += 1
-                    continue
-                return {"error": error_msg}
-        
+                if show_debug:
+                    st.error(f"API 요청 실패: {response.status_code}")
+                    st.write("응답 텍스트:", response.text[:500])  # 처음 500자만 표시
+                return {"error": f"API 요청 실패: {response.status_code} - {response.text[:200]}"}
         except requests.exceptions.Timeout:
-            error_msg = f"API 요청 타임아웃 ({timeout}초 초과)"
-            logger.warning(error_msg)
-            if retries < max_retries - 1:
-                retry_after = random.uniform(1, 2) * (retries + 1)
-                logger.info(f"{retry_after:.1f}초 후 재시도 (시도 {retries+1}/{max_retries})")
-                time.sleep(retry_after)
-                retries += 1
-                continue
-            return {"error": error_msg}
-            
-        except requests.exceptions.RequestException as e:
-            error_msg = f"API 요청 실패: {str(e)}"
-            logger.error(error_msg)
-            # 다른 API로 시도
-            if api_name != "Default API" and retries == 0:
-                logger.warning(f"{api_name} API 연결 오류, Default API로 재시도합니다.")
-                return query_api("Default API", question, top_k, index_path, metadata_path, timeout, max_retries)
-            if retries < max_retries - 1:
-                retry_after = random.uniform(2, 4) * (retries + 1)
-                logger.info(f"{retry_after:.1f}초 후 재시도 (시도 {retries+1}/{max_retries})")
-                time.sleep(retry_after)
-                retries += 1
-                continue
-            return {"error": error_msg}
-            
+            retry_count += 1
+            if retry_count >= max_retries:
+                return {"error": f"API 요청 타임아웃 (최대 재시도 횟수 초과)"}
+            wait_time = min(2 ** retry_count, 30)
+            if show_debug:
+                st.warning(f"요청 타임아웃, {wait_time}초 후 재시도 ({retry_count}/{max_retries})")
+            time.sleep(wait_time)
         except Exception as e:
-            error_msg = f"예상치 못한 오류: {str(e)}"
-            logger.error(f"{error_msg}\n{traceback.format_exc()}")
-            if retries < max_retries - 1:
-                retry_after = random.uniform(2, 5) * (retries + 1)
-                logger.info(f"{retry_after:.1f}초 후 재시도 (시도 {retries+1}/{max_retries})")
-                time.sleep(retry_after)
-                retries += 1
-                continue
-            return {"error": error_msg}
+            if show_debug:
+                st.error(f"API 요청 중 예외 발생: {str(e)}")
+            return {"error": f"API 요청 중 오류 발생: {str(e)}"}
+    
+    return {"error": "API 요청 실패: 최대 재시도 횟수 초과"}
 
-def process_response(response):
+# 응답에서 필요한 정보 추출 함수 개선
+def extract_info(response, show_debug=False):
     """API 응답에서 필요한 정보 추출"""
-    if not response:
-        return "API 응답 없음", "응답을 받지 못했습니다."
-    
     if "error" in response:
-        return f"오류: {response['error']}", f"API 요청 중 오류가 발생했습니다: {response['error']}"
-    
-    if "intent_data" not in response:
-        return "Intent 데이터 없음", "응답에 intent_data가 없습니다."
+        return {"embedding_search_top10": response["error"], "embedding_search_top10_with_score": response["error"], "llm_top1": response["error"]}
     
     try:
-        embedding_top_10 = "\n".join(
-            [f"- {match['intent']} (Score: {match.get('score', 'N/A'):.4f})" 
-             for match in response["intent_data"]["matches"][:10]]
-        )
-    
-        llm_top_3 = "\n\n".join(
-            [textwrap.fill(f"{i+1}. {match['answer']}", width=80) 
-             for i, match in enumerate(response["intent_data"]["reranked_matches"][:3])]
-        )
-    
-        return embedding_top_10, llm_top_3
-    except Exception as e:
-        logger.error(f"응답 처리 오류: {str(e)}\n{traceback.format_exc()}")
-        return f"응답 처리 오류: {str(e)}", "응답 데이터 처리 중 오류가 발생했습니다."
-
-def process_batch(batch_data, api_name, top_k, index_path, metadata_path, timeout=20, max_retries=3):
-    """배치 데이터 처리 (병렬 처리를 위한 함수)"""
-    results = []
-    for idx, question in batch_data:
-        # session_state 대신 전역 상태 객체 사용
-        if not processing_state.is_active():  # 중지 버튼 클릭 시 즉시 반환
-            break
-        try:
-            response = query_api(api_name, str(question), top_k, index_path, metadata_path, timeout, max_retries)
-            embedding_top_10, llm_top_3 = process_response(response)
-            results.append((idx, embedding_top_10, llm_top_3))
-            # 과도한 API 호출 방지를 위한 짧은 지연
-            time.sleep(0.1)
-        except Exception as e:
-            logger.error(f"질문 처리 중 오류 (인덱스 {idx}): {str(e)}\n{traceback.format_exc()}")
-            results.append((idx, f"처리 오류: {str(e)}", "데이터 처리 중 오류가 발생했습니다."))
-    return results
-
-def get_checkpoint_filename(uploaded_file_name):
-    base_name = os.path.splitext(uploaded_file_name)[0]
-    return os.path.join(TEMP_DIR, f"{base_name}_checkpoint.pkl")
-
-def save_checkpoint(uploaded_file_name, df, processed_indices):
-    checkpoint_data = {
-        'df': df,
-        'processed_indices': processed_indices,
-        'timestamp': time.time()
-    }
-    filename = get_checkpoint_filename(uploaded_file_name)
-    with open(filename, 'wb') as f:
-        pickle.dump(checkpoint_data, f)
-    return filename
-
-def load_checkpoint(uploaded_file_name):
-    filename = get_checkpoint_filename(uploaded_file_name)
-    if os.path.exists(filename):
-        try:
-            with open(filename, 'rb') as f:
-                checkpoint_data = pickle.load(f)
-            return checkpoint_data
-        except Exception as e:
-            logger.warning(f"체크포인트 파일 로드 중 오류: {str(e)}\n{traceback.format_exc()}")
-            st.warning(f"체크포인트 파일 로드 중 오류: {str(e)}")
-    return None
-
-def process_file(api_name, uploaded_file, result_placeholder, stats_placeholder, df_placeholder, question_column, 
-                 workers=4, batch_size=10, timeout=20, start_from_checkpoint=False, top_k="", index_path="", metadata_path=""):
-    try:
-        max_retries = 3  # API 호출 최대 재시도 횟수
-        checkpoint_data = None
-        processed_indices = set()
-        
-        # 전역 상태 객체 초기화
-        processing_state.start()
-        
-        if start_from_checkpoint:
-            checkpoint_data = load_checkpoint(uploaded_file.name)
-            if checkpoint_data:
-                df = checkpoint_data['df']
-                processed_indices = set(checkpoint_data['processed_indices'])
-                checkpoint_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(checkpoint_data['timestamp']))
-                stats_placeholder.info(f"체크포인트에서 재시작합니다. (저장 시간: {checkpoint_time})")
-                stats_placeholder.info(f"이미 처리된 질문 수: {len(processed_indices)}/{len(df)}")
-                df_placeholder.dataframe(df, use_container_width=True)
-                progress_bar = st.progress(len(processed_indices) / len(df))
-                time.sleep(1)
-        
-        if checkpoint_data is None:
-            if uploaded_file.name.endswith(".csv"):
-                df = pd.read_csv(uploaded_file)
-            elif uploaded_file.name.endswith(".xlsx"):
-                df = pd.read_excel(uploaded_file)
-            else:
-                st.error("지원되지 않는 파일 형식입니다. CSV 또는 XLSX 파일을 업로드해주세요.")
-                processing_state.stop()
-                return None
-            if question_column not in df.columns:
-                stats_placeholder.error(f"선택한 열 '{question_column}'이 파일에 존재하지 않습니다. 올바른 열을 선택해주세요.")
-                processing_state.stop()
-                return None
-            if "Embedding Search Top 10" not in df.columns:
-                df["Embedding Search Top 10"] = ""
-            if "LLM Top 3" not in df.columns:
-                df["LLM Top 3"] = ""
-        
-        progress_bar = st.progress(len(processed_indices) / len(df))
-        
-        # 처리 중지 버튼
-        stop_button_col = st.container()
-        stop_button = stop_button_col.button("처리 중지", type="primary", key="stop_processing")
-        if stop_button:
-            processing_state.stop()
-            stats_placeholder.warning("처리 중지 요청됨... 현재 작업 완료 후 중지됩니다.")
-        
-        # 중지 버튼 상태 모니터링
-        def check_stop_button():
-            if not processing_state.is_active():
-                return True
-            return False
-        
-        start_time = time.time()
-        total_rows = len(df)
-        remaining_indices = [i for i in range(total_rows) if i not in processed_indices]
-        total_remaining = len(remaining_indices)
-        
-        stats_placeholder.info(f"총 {total_rows}개 질문 중 {total_remaining}개 처리 예정 (병렬 처리: {workers}개 스레드)")
-        logger.info(f"처리 시작: 총 {total_rows}개 질문, {total_remaining}개 처리 예정, {workers}개 스레드, 배치 크기 {batch_size}")
-        
-        # 배치 데이터 생성
-        batches = []
-        current_batch = []
-        for idx in remaining_indices:
-            question = df.iloc[idx][question_column]
-            current_batch.append((idx, question))
-            if len(current_batch) >= batch_size:
-                batches.append(current_batch)
-                current_batch = []
-        if current_batch:
-            batches.append(current_batch)
-        
-        # 상태 표시 컨테이너
-        status_container = st.container()
-        batch_progress = status_container.empty()
-        batch_progress.text(f"0/{len(batches)} 배치 처리 중...")
-        
-        # 최신 처리 결과 표시 컨테이너
-        latest_results = status_container.empty()
-        latest_results.text("아직 처리된 결과가 없습니다...")
-        
-        # 처리 실패한 질문 저장
-        failed_questions = []
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
-            futures = []
-            for i in range(min(workers, len(batches))):
-                if i < len(batches):
-                    futures.append(executor.submit(process_batch, batches[i], api_name, top_k, index_path, metadata_path, timeout, max_retries))
-            
-            completed_batches = 0
-            next_batch_idx = min(workers, len(batches))
-            
-            # 처리 상태 업데이트 주기
-            display_update_interval = 2  # 2개 배치마다 결과 표시 업데이트
-            checkpoint_interval = 5      # 5개 배치마다 체크포인트 저장
-            
-            while futures and processing_state.is_active():
-                # 0.1초마다 완료된 작업 확인
-                done, not_done = concurrent.futures.wait(
-                    futures, 
-                    timeout=0.1,
-                    return_when=concurrent.futures.FIRST_COMPLETED
-                )
-                
-                # 중지 요청 확인
-                if check_stop_button() or not processing_state.is_active():
-                    logger.info("사용자가 처리 중지를 요청했습니다.")
-                    for future in futures:
-                        future.cancel()
-                    stats_placeholder.warning(f"처리가 중단되었습니다. {len(processed_indices)}/{total_rows} 질문 처리 완료.")
-                    break
-                
-                # 완료된 작업 처리
-                for future in done:
-                    try:
-                        results = future.result()
-                        latest_processed = []
-                        
-                        for idx, embedding_top_10, llm_top_3 in results:
-                            df.at[idx, "Embedding Search Top 10"] = embedding_top_10
-                            df.at[idx, "LLM Top 3"] = llm_top_3
-                            processed_indices.add(idx)
-                            
-                            # 오류 발생 여부 확인
-                            if "오류" in embedding_top_10 or "오류" in llm_top_3:
-                                failed_questions.append((idx, df.iloc[idx][question_column], embedding_top_10))
-                            
-                            # 최근 처리된 5개 결과만 표시
-                            if len(latest_processed) < 5:
-                                latest_processed.append({
-                                    "인덱스": idx,
-                                    "질문": df.iloc[idx][question_column][:50] + "..." if len(df.iloc[idx][question_column]) > 50 else df.iloc[idx][question_column],
-                                    "상태": "성공" if "오류" not in embedding_top_10 else "실패"
-                                })
-                        
-                        # 최근 결과 표시
-                        if latest_processed:
-                            latest_results_df = pd.DataFrame(latest_processed)
-                            latest_results.dataframe(latest_results_df, use_container_width=True)
-                        
-                        # 새로운 배치 시작
-                        if next_batch_idx < len(batches) and processing_state.is_active():
-                            futures.append(executor.submit(process_batch, batches[next_batch_idx], api_name, top_k, index_path, metadata_path, timeout, max_retries))
-                            next_batch_idx += 1
-                        
-                        completed_batches += 1
-                        batch_progress.text(f"{completed_batches}/{len(batches)} 배치 처리 중... ({len(processed_indices)}/{total_rows} 질문)")
-                        progress_bar.progress(len(processed_indices) / total_rows)
-                        
-                        # 주기적으로 결과 표시 업데이트
-                        if completed_batches % display_update_interval == 0 or completed_batches == len(batches):
-                            display_df = df.copy()
-                            df_placeholder.dataframe(display_df, use_container_width=True)
-                        
-                        # 주기적으로 체크포인트 저장
-                        if completed_batches % checkpoint_interval == 0 or completed_batches == len(batches):
-                            checkpoint_file = save_checkpoint(uploaded_file.name, df, list(processed_indices))
-                            stats_placeholder.info(f"체크포인트 저장됨: {time.strftime('%H:%M:%S')}")
-                    
-                    except Exception as e:
-                        logger.error(f"배치 처리 결과 처리 중 오류: {str(e)}\n{traceback.format_exc()}")
-                        stats_placeholder.error(f"배치 처리 결과 처리 중 오류: {str(e)}")
-                
-                # 진행 중인 작업 목록 업데이트
-                futures = list(not_done)
-                
-                # 진행 상황 및 통계 업데이트
-                elapsed_time = time.time() - start_time
-                if len(processed_indices) > 0:
-                    avg_time_per_question = elapsed_time / len(processed_indices)
-                    remaining_questions = total_rows - len(processed_indices)
-                    estimated_time_remaining = avg_time_per_question * remaining_questions
-                    est_minutes = int(estimated_time_remaining // 60)
-                    est_seconds = int(estimated_time_remaining % 60)
-                    
-                    # 실패율 계산
-                    failure_rate = len(failed_questions) / len(processed_indices) * 100 if processed_indices else 0
-                    
-                    stats_text = (f"진행 상황: {len(processed_indices)}/{total_rows} 질문 ({len(processed_indices)/total_rows*100:.1f}%)\n"
-                                  f"경과 시간: {int(elapsed_time//60)}분 {int(elapsed_time%60)}초\n"
-                                  f"예상 남은 시간: {est_minutes}분 {est_seconds}초\n"
-                                  f"처리 속도: {len(processed_indices)/elapsed_time:.2f} 질문/초\n"
-                                  f"오류 발생: {len(failed_questions)}개 ({failure_rate:.1f}%)")
-                    stats_placeholder.text(stats_text)
-        
-        # 처리 완료 후 체크포인트 저장
-        if len(processed_indices) > 0:
-            save_checkpoint(uploaded_file.name, df, list(processed_indices))
-        
-        # 처리 결과 요약
-        total_time = time.time() - start_time
-        result_summary = f"처리가 완료되었습니다! 총 {total_rows}개 질문 중 {len(processed_indices)}개 처리 완료, 소요 시간: {int(total_time//60)}분 {int(total_time%60)}초"
-        if failed_questions:
-            result_summary += f"\n{len(failed_questions)}개 질문에서 오류가 발생했습니다."
-        
-        result_placeholder.success(result_summary)
-        
-        # 최종 결과 표시
-        df_placeholder.dataframe(df, use_container_width=True)
-        
-        # 실패한 질문 목록 표시
-        if failed_questions:
-            st.subheader(f"오류 발생 질문 ({len(failed_questions)}개)")
-            failed_df = pd.DataFrame([(idx, question, error) for idx, question, error in failed_questions], 
-                                    columns=["인덱스", "질문", "오류 메시지"])
-            st.dataframe(failed_df, use_container_width=True)
-        
-        processing_state.stop()
-        return df
-    
-    except Exception as e:
-        logger.error(f"처리 중 예외 발생: {str(e)}\n{traceback.format_exc()}")
-        try:
-            if 'df' in locals() and 'processed_indices' in locals():
-                save_checkpoint(uploaded_file.name, df, list(processed_indices))
-                stats_placeholder.info("오류 발생 시점까지의 진행상황이 저장되었습니다.")
-        except Exception as save_error:
-            logger.error(f"체크포인트 저장 중 추가 오류: {str(save_error)}")
-        
-        stats_placeholder.error(f"처리 중 오류가 발생했습니다: {str(e)}")
-        processing_state.stop()
-        return None
-
-def process_single_question(api_name, question, top_k, index_path, metadata_path, timeout=20):
-    """단일 질문을 처리하고 결과 반환 (타임아웃 기본값 20초)"""
-    with st.spinner("API 요청 처리 중..."):
-        response = query_api(api_name, question, top_k, index_path, metadata_path, timeout)
-        if response:
-            embedding_top_10, llm_top_3 = process_response(response)
-            return embedding_top_10, llm_top_3
+        # intent_data 객체 확인 (중첩 구조 처리)
+        if "intent_data" in response:
+            intent_data = response["intent_data"]
         else:
-            return "API 응답 오류 발생", "응답을 받지 못했습니다."
+            intent_data = response  # 중첩되지 않은 경우
+            
+        # 응답 키 확인 (디버깅)
+        if show_debug:
+            st.write("응답 키:", list(intent_data.keys()) if isinstance(intent_data, dict) else "응답이 dict 형식이 아님")
+        
+        # Top 10 Embedding Search Intent 추출
+        matches = intent_data.get("matches", [])
+        
+        if show_debug:
+            st.write(f"matches 개수: {len(matches)}")
+            if matches:
+                st.write("첫 번째 match 항목 구조:")
+                st.json(matches[0])
+        
+        embedding_search_top10 = []
+        embedding_search_top10_with_score = []
+        
+        for i, match in enumerate(matches[:10]):
+            # intent와 score 필드 확인
+            intent = match.get("intent", "")
+            score = match.get("score", 0)
+            
+            if intent:  # 의도가 있는 경우
+                embedding_search_top10.append(intent)
+                embedding_search_top10_with_score.append(f"{i+1}. \"{intent}\" {score:.4f}")
+        
+        # LLM Top 1 추출
+        reranked_matches = intent_data.get("reranked_matches", [])
+        
+        if show_debug:
+            st.write(f"reranked_matches 개수: {len(reranked_matches)}")
+            if reranked_matches:
+                st.write("첫 번째 reranked_match 항목 구조:")
+                st.json(reranked_matches[0])
+        
+        llm_top1 = ""
+        
+        if reranked_matches and len(reranked_matches) > 0:
+            llm_top1 = reranked_matches[0].get("answer", "")
+        
+        # 결과 생성 - 줄바꿈을 HTML <br> 태그로 변환하여 표에서 줄바꿈이 보이도록 함
+        result = {
+            "embedding_search_top10": ", ".join(embedding_search_top10) if embedding_search_top10 else "결과 없음",
+            "embedding_search_top10_with_score": "<br>".join(embedding_search_top10_with_score) if embedding_search_top10_with_score else "결과 없음",
+            "llm_top1": llm_top1 if llm_top1 else "결과 없음"
+        }
+        
+        if show_debug:
+            st.write("추출된 결과:")
+            st.json(result)
+        
+        return result
+    except Exception as e:
+        if show_debug:
+            st.error(f"응답 데이터 처리 중 오류 발생: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
+        return {"embedding_search_top10": f"정보 추출 실패: {str(e)}", 
+                "embedding_search_top10_with_score": f"정보 추출 실패: {str(e)}", 
+                "llm_top1": f"정보 추출 실패: {str(e)}"}
 
-# Streamlit 앱 메인 함수
-st.title("API 테스트 자동화 툴")
+# 탭 생성
+tab1, tab2 = st.tabs(["배치 테스트", "단일 테스트"])
 
-# Streamlit 앱 초기화 - session_state 제거하고 전역 상태 사용
-
-# 사이드바 설정: API 선택 (URI와 헤더는 고정)
-st.sidebar.header("API 설정")
-api_name = st.sidebar.selectbox(
-    "사용할 API 선택",
-    list(API_CONFIGS.keys()),
-    index=0
-)
-st.sidebar.info(f"사용 중인 API URL: {API_CONFIGS[api_name]['url']}")
-
-# 추가 파라미터 설정 (top_k, index_path, metadata_path)
-st.sidebar.header("추가 파라미터 설정")
-top_k = st.sidebar.text_input("top_k", value="10")
-index_path = st.sidebar.text_input("index_path", value="faiss_index/embedding dataset-0314-Hans-0313_v20250314_222213.index")
-metadata_path = st.sidebar.text_input("metadata_path", value="faiss_index/embedding dataset-0314-Hans-0313_v20250314_222213.csv")
-
-# 고급 설정
-st.sidebar.header("고급 설정")
-timeout = st.sidebar.slider("API 타임아웃 (초)", min_value=5, max_value=60, value=20, step=5)
-workers = st.sidebar.slider("병렬 처리 스레드 수", min_value=1, max_value=16, value=4, step=1)
-batch_size = st.sidebar.slider("배치 크기", min_value=1, max_value=20, value=5, step=1)
-
-# 병렬 처리 권장 설정 안내
-if workers > 8:
-    st.sidebar.warning("병렬 처리 스레드가 너무 많으면 API 제한이나 성능 저하가 발생할 수 있습니다. 4-8개 사이를 권장합니다.")
-    
-if batch_size > 10:
-    st.sidebar.warning("배치 크기가 클수록 중간 결과 저장 빈도가 줄어들어 오류 발생 시 더 많은 작업이 손실될 수 있습니다.")
-
-# 탭 생성: 단일 질문과 대량 질문 처리
-tab1, tab2 = st.tabs(["단일 질문", "대량 질문 (Excel)"])
-
+# 배치 테스트 탭
 with tab1:
-    st.subheader("단일 질문 테스트")
-    st.write("질문을 입력하고 API 응답을 바로 확인하세요.")
-    question = st.text_area("질문 입력", height=100, placeholder="여기에 질문을 입력하세요...")
-    if st.button("질문 제출"):
-        if question:
-            embedding_top_10, llm_top_3 = process_single_question(api_name, question, top_k, index_path, metadata_path, timeout)
-            st.subheader("Embedding Search Top 10")
-            st.markdown(embedding_top_10)
-            st.subheader("LLM Top 3")
-            st.markdown(llm_top_3)
-            st.subheader("결과 요약")
-            result_df = pd.DataFrame({
-                "질문": [question],
-                "Embedding Search Top 10": [embedding_top_10],
-                "LLM Top 3": [llm_top_3]
-            })
-            st.dataframe(result_df)
-            output = BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                result_df.to_excel(writer, index=False)
-            excel_data = output.getvalue()
-            st.download_button(
-                label="결과 Excel 파일 다운로드",
-                data=excel_data,
-                file_name="single_question_result.xlsx",
-                mime="application/vnd.ms-excel"
-            )
-        else:
-            st.warning("질문을 입력해주세요.")
-
-with tab2:
-    st.subheader("대량 질문 처리")
-    st.write("CSV 또는 XLSX 파일을 업로드하여 여러 질문을 한번에 처리하세요.")
+    st.markdown('<div class="sub-header">배치 테스트</div>', unsafe_allow_html=True)
     
-    # 파일 업로드 섹션
-    uploaded_file = st.file_uploader("CSV 또는 XLSX 파일 업로드", type=["csv", "xlsx"])
+    # 중간 결과 다운로드 버튼 표시
+    if st.session_state.temp_results is not None:
+        st.download_button(
+            label="가장 최근 중간 결과 다운로드",
+            data=st.session_state.temp_results,
+            file_name=st.session_state.temp_filename,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_temp"
+        )
+    
+    # 배치 테스트 모드 선택
+    batch_test_mode = st.radio(
+        "배치 테스트 모드",
+        ["단일 데이터셋", "데이터셋 비교"],
+        index=0,
+        key="batch_test_mode"
+    )
+    
+    if batch_test_mode == "단일 데이터셋":
+        # 데이터셋 선택
+        dataset_name = st.selectbox(
+            "데이터셋 선택",
+            options=list(API_DATASETS.keys()),
+            index=0
+        )
+    else:
+        # 비교할 데이터셋 선택
+        st.write("비교할 데이터셋 선택:")
+        batch_selected_datasets = {}
+        batch_cols = st.columns(len(API_DATASETS))
+        for i, dataset in enumerate(API_DATASETS.keys()):
+            with batch_cols[i]:
+                batch_selected_datasets[dataset] = st.checkbox(dataset, value=True, key=f"batch_compare_{dataset}")
+        
+        batch_selected_dataset_names = [dataset for dataset, selected in batch_selected_datasets.items() if selected]
+        if not batch_selected_dataset_names:
+            st.error("최소한 하나의 데이터셋을 선택해주세요.")
+    
+    # 파일 업로드
+    uploaded_file = st.file_uploader("CSV 또는 Excel 파일 업로드 (첫 번째 컬럼을 질문으로 사용)", type=["csv", "xlsx"])
     
     if uploaded_file is not None:
-        st.write("파일이 업로드되었습니다:", uploaded_file.name)
-        checkpoint_exists = os.path.exists(get_checkpoint_filename(uploaded_file.name))
-        
         try:
-            # 파일 미리보기
-            if uploaded_file.name.endswith(".csv"):
-                preview_df = pd.read_csv(uploaded_file)
+            # 파일 형식에 따라 로드
+            if uploaded_file.name.endswith('.csv'):
+                df = pd.read_csv(uploaded_file, header=None)
             else:
-                preview_df = pd.read_excel(uploaded_file)
+                df = pd.read_excel(uploaded_file, header=None)
+            
+            # 첫 번째 컬럼을 질문으로 사용
+            if df.shape[1] < 1:
+                st.error("업로드된 파일에 최소 한 개의 컬럼이 필요합니다.")
+            else:
+                # 데이터프레임 컬럼 이름 설정
+                df.columns = [f'Column{i+1}' for i in range(df.shape[1])]
+                df = df.rename(columns={'Column1': 'question'})
                 
-            st.subheader("파일 미리보기")
-            st.dataframe(preview_df.head(5))
-            
-            # 질문 열 선택
-            question_column = st.selectbox(
-                "질문이 포함된 열을 선택하세요",
-                options=preview_df.columns.tolist(),
-                index=0
-            )
-            
-            # 체크포인트 사용 여부
-            use_checkpoint = False
-            if checkpoint_exists:
-                use_checkpoint = st.checkbox("이전 진행 상황에서 계속하기", value=True)
-                if use_checkpoint:
-                    st.info("저장된 체크포인트에서 처리를 재개합니다. 이전에 처리된 질문은 건너뜁니다.")
-            
-            # 결과 컨테이너 준비
-            result_placeholder = st.empty()
-            stats_placeholder = st.empty()
-            df_placeholder = st.empty()
-            download_placeholder = st.empty()
-            
-            # 처리 시작 버튼
-            if st.button("처리 시작", type="primary"):
-                # 처리 시작 - 전역 상태 객체 사용
-                uploaded_file.seek(0)
+                st.write(f"파일 로드 성공: {len(df)} 개의 질문")
+                st.dataframe(df[['question']].head(5))
                 
-                # 파일 처리 함수 호출
-                df = process_file(
-                    api_name, 
-                    uploaded_file, 
-                    result_placeholder, 
-                    stats_placeholder, 
-                    df_placeholder, 
-                    question_column,
-                    workers=workers,
-                    batch_size=batch_size,
-                    timeout=timeout,
-                    start_from_checkpoint=use_checkpoint,
-                    top_k=top_k,
-                    index_path=index_path,
-                    metadata_path=metadata_path
-                )
+                # 배치 크기 및 타임아웃 설정
+                col1, col2 = st.columns(2)
+                with col1:
+                    batch_size = st.number_input("배치 크기 (한 번에 처리할 질문 수)", min_value=1, max_value=50, value=10)
+                with col2:
+                    timeout_seconds = st.number_input("API 요청 타임아웃 (초)", min_value=1, max_value=60, value=10)
                 
-                # 결과 저장 및 다운로드 옵션
-                if df is not None:
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        df.to_excel(writer, index=False)
-                    excel_data = output.getvalue()
+                max_retries = st.slider("최대 재시도 횟수", min_value=1, max_value=10, value=3)
+                
+                # API 테스트 실행 버튼
+                if st.button("API 테스트 실행"):
+                    if batch_test_mode == "데이터셋 비교" and not batch_selected_dataset_names:
+                        st.error("최소한 하나의 데이터셋을 선택해주세요.")
+                    else:
+                        # 처리 시작 플래그 설정
+                        st.session_state.is_processing = True
+                        st.session_state.stop_processing = False
+                        
+                        # 정지 버튼 추가
+                        stop_button_placeholder = st.empty()
+                        if stop_button_placeholder.button("테스트 중지", key="stop_button"):
+                            st.session_state.stop_processing = True
+                        
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        error_log = []
+                        
+                        # 실시간 결과 표시를 위한 컨테이너
+                        live_results_container = st.container()
+                        
+                        if batch_test_mode == "단일 데이터셋":
+                            # 단일 데이터셋 배치 처리
+                            # 결과 저장용 컬럼 추가
+                            df['embedding_search_top10'] = ""
+                            df['embedding_search_top10_with_score'] = ""
+                            df['llm_top1'] = ""
+                            df['status'] = ""
+                            
+                            # 처리 결과 저장을 위한 데이터프레임 복사
+                            results_df = df.copy()
+                            
+                            # 일괄 처리 시작
+                            total_questions = len(df)
+                            processed = 0
+                            successful = 0
+                            failed = 0
+                            
+                            # 실시간 결과 표시
+                            with live_results_container:
+                                st.subheader("실시간 테스트 결과")
+                                live_results_table = st.empty()
+                                result_df = pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태'])
+                                live_results_table.dataframe(result_df)
+                            
+                            for i in range(0, total_questions, batch_size):
+                                if st.session_state.stop_processing:
+                                    status_text.warning("테스트가 사용자에 의해 중지되었습니다.")
+                                    break
+                                
+                                batch = df.iloc[i:min(i+batch_size, total_questions)]
+                                
+                                for idx, row in batch.iterrows():
+                                    if st.session_state.stop_processing:
+                                        break
+                                    
+                                    query = row['question']
+                                    status_text.write(f"처리 중: {processed+1}/{total_questions} - {query[:50]}...")
+                                    
+                                    try:
+                                        # API 호출 - 배치 처리에서는 디버그 비활성화
+                                        with st.expander(f"질문 {processed+1}/{total_questions} 처리 중", expanded=False):
+                                            st.write(f"질문: {query}")
+                                            response = call_api(query, dataset_name, timeout_seconds, max_retries, show_debug=False)
+                                            
+                                            if "error" in response:
+                                                st.error(f"오류 발생: {response['error']}")
+                                                df.at[idx, 'status'] = "실패"
+                                                df.at[idx, 'embedding_search_top10'] = response["error"]
+                                                df.at[idx, 'embedding_search_top10_with_score'] = response["error"]
+                                                df.at[idx, 'llm_top1'] = response["error"]
+                                                error_log.append(f"질문 '{query}': {response['error']}")
+                                                failed += 1
+                                            else:
+                                                # 중요 키가 있는지 확인
+                                                missing_keys = []
+                                                if "matches" not in response:
+                                                    missing_keys.append("matches")
+                                                if "reranked_matches" not in response:
+                                                    missing_keys.append("reranked_matches")
+                                                
+                                                if missing_keys:
+                                                    st.warning(f"응답에 일부 키가 누락됨: {', '.join(missing_keys)}")
+                                                
+                                                # 응답 추출
+                                                info = extract_info(response, show_debug=False)
+                                                st.success("응답 추출 성공")
+                                                st.write("Top 10 검색 결과:", info['embedding_search_top10'])
+                                                st.write("Top 1 재순위화 결과:", info['llm_top1'])
+                                                
+                                                df.at[idx, 'embedding_search_top10'] = info['embedding_search_top10']
+                                                df.at[idx, 'embedding_search_top10_with_score'] = info['embedding_search_top10_with_score']
+                                                df.at[idx, 'llm_top1'] = info['llm_top1']
+                                                df.at[idx, 'status'] = "성공"
+                                    except Exception as e:
+                                        with st.expander(f"오류 - 질문 {processed+1}/{total_questions}", expanded=True):
+                                            st.error(f"처리 중 예외 발생: {str(e)}")
+                                        df.at[idx, 'status'] = "오류"
+                                        df.at[idx, 'embedding_search_top10'] = f"처리 중 오류: {str(e)}"
+                                        df.at[idx, 'embedding_search_top10_with_score'] = f"처리 중 오류: {str(e)}"
+                                        df.at[idx, 'llm_top1'] = f"처리 중 오류: {str(e)}"
+                                        error_log.append(f"질문 '{query}': 처리 중 오류 - {str(e)}")
+                                        failed += 1
+                                    
+                                    processed += 1
+                                    progress_bar.progress(processed / total_questions)
+                                    
+                                    # 실시간 결과 업데이트
+                                    new_row = {
+                                        '질문': query,
+                                        'Top 10 검색 결과 (intent & score)': df.at[idx, 'embedding_search_top10_with_score'],
+                                        'Top 1 재순위화 결과 (answer)': df.at[idx, 'llm_top1'],
+                                        '상태': df.at[idx, 'status']
+                                    }
+                                    result_df = pd.concat([result_df, pd.DataFrame([new_row])], ignore_index=True)
+                                    live_results_table.dataframe(result_df)
+                                    
+                                    # 중간 저장
+                                    if processed % 10 == 0 or processed == total_questions:
+                                        temp_output = BytesIO()
+                                        with pd.ExcelWriter(temp_output, engine='xlsxwriter') as writer:
+                                            display_df = df[['question', 'embedding_search_top10_with_score', 'llm_top1', 'status']]
+                                            display_df.columns = ['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태']
+                                            display_df.to_excel(writer, index=False, sheet_name='API 테스트 결과')
+                                        st.session_state.temp_results = temp_output.getvalue()
+                                        st.session_state.temp_filename = f"api_test_partial_results_{processed}of{total_questions}.xlsx"
+                                    
+                                    # 과부하 방지를 위한 지연
+                                    time.sleep(0.5)
+                                
+                                # 배치 완료 후 잠시 대기
+                                time.sleep(1)
+                            
+                            # 실시간 결과 테이블 유지하고 최종 상태 표시
+                            st.session_state.live_results = result_df
+                            
+                            if st.session_state.stop_processing:
+                                status_text.warning(f"테스트 중지됨: {total_questions}개 중 {processed}개 처리됨 ({successful}개 성공, {failed}개 실패)")
+                            else:
+                                status_text.markdown(f'<div class="info-text">테스트 완료: {total_questions}개 질문 중 <span class="success-text">{successful}개 성공</span>, <span class="error-text">{failed}개 실패</span></div>', unsafe_allow_html=True)
+                            
+                            # 오류 로그 표시
+                            if error_log:
+                                with st.expander("오류 로그 보기"):
+                                    for error in error_log:
+                                        st.error(error)
+                            
+                            # 결과 저장 및 다운로드
+                            now = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            output_filename = f"api_test_results_{now}.xlsx"
+                            
+                            # 엑셀 파일 생성
+                            output = BytesIO()
+                            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                                result_df.to_excel(writer, index=False, sheet_name='API 테스트 결과')
+                                # 열 너비 자동 조정
+                                worksheet = writer.sheets['API 테스트 결과']
+                                for i, col in enumerate(result_df.columns):
+                                    max_len = max(result_df[col].astype(str).map(len).max(), len(col)) + 2
+                                    worksheet.set_column(i, i, max_len)
+                                    # embedding_search_top10_with_score 컬럼은 더 넓게 설정
+                                    if i == 1:  # Top 10 검색 결과 컬럼
+                                        worksheet.set_column(i, i, max_len * 2)
+                            
+                            # 다운로드 버튼
+                            st.download_button(
+                                label="결과 파일 다운로드",
+                                data=output.getvalue(),
+                                file_name=output_filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        else:
+                            # 여러 데이터셋 비교 배치 처리
+                            # 결과 데이터프레임 초기화
+                            result_dfs = {}
+                            for dataset in batch_selected_dataset_names:
+                                result_dfs[dataset] = df.copy()
+                                result_dfs[dataset][f'{dataset}_embedding_search_top10'] = ""
+                                result_dfs[dataset][f'{dataset}_embedding_search_top10_with_score'] = ""
+                                result_dfs[dataset][f'{dataset}_llm_top1'] = ""
+                                result_dfs[dataset][f'{dataset}_status'] = ""
+                            
+                            # 합쳐진 결과 데이터프레임 초기화
+                            merged_df = df.copy()
+                            
+                            # 실시간 결과 표시
+                            with live_results_container:
+                                st.subheader("실시간 테스트 결과")
+                                tabs = st.tabs([f"{dataset}" for dataset in batch_selected_dataset_names] + ["통합 결과"])
+                                
+                                # 각 데이터셋별 결과 테이블 초기화
+                                live_results_tables = {}
+                                for i, dataset in enumerate(batch_selected_dataset_names):
+                                    with tabs[i]:
+                                        live_results_tables[dataset] = st.empty()
+                                        live_results_tables[dataset].dataframe(pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태']))
+                                
+                                # 통합 결과 테이블 초기화
+                                with tabs[-1]:
+                                    merged_results_table = st.empty()
+                                    merged_results_table.dataframe(pd.DataFrame(columns=['질문'] + [f"{dataset}_결과" for dataset in batch_selected_dataset_names]))
+                            
+                            # 일괄 처리 시작
+                            total_tasks = len(df) * len(batch_selected_dataset_names)
+                            processed = 0
+                            successful = 0
+                            failed = 0
+                            
+                            # 데이터셋별 실시간 결과 초기화
+                            live_dataset_results = {}
+                            for dataset in batch_selected_dataset_names:
+                                live_dataset_results[dataset] = pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태'])
+                            
+                            # 통합 결과 초기화
+                            live_merged_results = pd.DataFrame(columns=['질문'] + [f"{dataset}_embedding_search_top10" for dataset in batch_selected_dataset_names] + 
+                                                                     [f"{dataset}_embedding_search_top10_with_score" for dataset in batch_selected_dataset_names] + 
+                                                                     [f"{dataset}_llm_top1" for dataset in batch_selected_dataset_names])
+                            
+                            for i in range(0, len(df), batch_size):
+                                if st.session_state.stop_processing:
+                                    status_text.warning("테스트가 사용자에 의해 중지되었습니다.")
+                                    break
+                                
+                                batch = df.iloc[i:min(i+batch_size, len(df))]
+                                
+                                for idx, row in batch.iterrows():
+                                    if st.session_state.stop_processing:
+                                        break
+                                    
+                                    query = row['question']
+                                    merged_row = {'질문': query}
+                                    
+                                    for dataset in batch_selected_dataset_names:
+                                        if st.session_state.stop_processing:
+                                            break
+                                            
+                                        status_text.write(f"처리 중: 질문 {idx+1}/{len(df)}, 데이터셋 {dataset}")
+                                        
+                                        try:
+                                            # API 호출 - 배치 처리에서는 디버그 비활성화
+                                            with st.expander(f"질문 {idx+1}/{len(df)} - {dataset} 처리 중", expanded=False):
+                                                st.write(f"질문: {query}")
+                                                response = call_api(query, dataset, timeout_seconds, max_retries, show_debug=False)
+                                                
+                                                if "error" in response:
+                                                    st.error(f"오류 발생: {response['error']}")
+                                                    result_dfs[dataset].at[idx, f'{dataset}_status'] = "실패"
+                                                    result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10'] = response["error"]
+                                                    result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10_with_score'] = response["error"]
+                                                    result_dfs[dataset].at[idx, f'{dataset}_llm_top1'] = response["error"]
+                                                    error_log.append(f"데이터셋 {dataset}, 질문 '{query}': {response['error']}")
+                                                    failed += 1
+                                                    
+                                                    # 실시간 결과 업데이트
+                                                    status = "실패"
+                                                    embedding_search = response["error"]
+                                                    embedding_search_with_score = response["error"]
+                                                    llm_result = response["error"]
+                                                else:
+                                                    # 중요 키가 있는지 확인
+                                                    missing_keys = []
+                                                    if "matches" not in response:
+                                                        missing_keys.append("matches")
+                                                    if "reranked_matches" not in response:
+                                                        missing_keys.append("reranked_matches")
+                                                    
+                                                    if missing_keys:
+                                                        st.warning(f"응답에 일부 키가 누락됨: {', '.join(missing_keys)}")
+                                                    
+                                                    # 응답 추출
+                                                    info = extract_info(response, show_debug=False)
+                                                    st.success("응답 추출 성공")
+                                                    st.write("Top 10 검색 결과:", info['embedding_search_top10'])
+                                                    st.write("Top 1 재순위화 결과:", info['llm_top1'])
+                                                    
+                                                    result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10'] = info['embedding_search_top10']
+                                                    result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10_with_score'] = info['embedding_search_top10_with_score']
+                                                    result_dfs[dataset].at[idx, f'{dataset}_llm_top1'] = info['llm_top1']
+                                                    result_dfs[dataset].at[idx, f'{dataset}_status'] = "성공"
+                                        except Exception as e:
+                                            with st.expander(f"오류 - 질문 {idx+1}/{len(df)} - {dataset}", expanded=True):
+                                                st.error(f"처리 중 예외 발생: {str(e)}")
+                                            result_dfs[dataset].at[idx, f'{dataset}_status'] = "오류"
+                                            result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10'] = f"처리 중 오류: {str(e)}"
+                                            result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10_with_score'] = f"처리 중 오류: {str(e)}"
+                                            result_dfs[dataset].at[idx, f'{dataset}_llm_top1'] = f"처리 중 오류: {str(e)}"
+                                            error_log.append(f"데이터셋 {dataset}, 질문 '{query}': 처리 중 오류 - {str(e)}")
+                                            failed += 1
+                                            
+                                            # 실시간 결과 업데이트
+                                            status = "오류"
+                                            embedding_search = f"처리 중 오류: {str(e)}"
+                                            embedding_search_with_score = f"처리 중 오류: {str(e)}"
+                                            llm_result = f"처리 중 오류: {str(e)}"
+                                            
+                                            # 합쳐진 결과 데이터프레임에도 추가
+                                            merged_df.at[idx, f'{dataset}_embedding_search_top10'] = f"처리 중 오류: {str(e)}"
+                                            merged_df.at[idx, f'{dataset}_embedding_search_top10_with_score'] = f"처리 중 오류: {str(e)}"
+                                            merged_df.at[idx, f'{dataset}_llm_top1'] = f"처리 중 오류: {str(e)}"
+                                            merged_df.at[idx, f'{dataset}_status'] = "오류"
+                                        
+                                    # 데이터셋별 실시간 결과 업데이트
+                                    new_row = {
+                                        '질문': query,
+                                        'Top 10 검색 결과 (intent & score)': embedding_search_with_score,
+                                        'Top 1 재순위화 결과 (answer)': llm_result,
+                                        '상태': status
+                                    }
+                                    live_dataset_results[dataset] = pd.concat([live_dataset_results[dataset], pd.DataFrame([new_row])], ignore_index=True)
+                                    live_results_tables[dataset].dataframe(live_dataset_results[dataset])
+                                    
+                                    # 통합 결과용 데이터 추가
+                                    merged_row[f"{dataset}_embedding_search_top10"] = embedding_search
+                                    merged_row[f"{dataset}_embedding_search_top10_with_score"] = embedding_search_with_score
+                                    merged_row[f"{dataset}_llm_top1"] = llm_result
+                                    
+                                    processed += 1
+                                    progress_bar.progress(processed / total_tasks)
+                                    
+                                    # 과부하 방지를 위한 지연
+                                    time.sleep(0.5)
+                                
+                                # 통합 결과 업데이트
+                                live_merged_results = pd.concat([live_merged_results, pd.DataFrame([merged_row])], ignore_index=True)
+                                merged_results_table.dataframe(live_merged_results)
+                                
+                                # 중간 저장
+                                if (idx + 1) % 5 == 0 or idx == len(df) - 1:
+                                    temp_output = BytesIO()
+                                    with pd.ExcelWriter(temp_output, engine='xlsxwriter') as writer:
+                                        merged_df.to_excel(writer, index=False, sheet_name='API 테스트 결과')
+                                    st.session_state.temp_results = temp_output.getvalue()
+                                    st.session_state.temp_filename = f"api_comparison_partial_results_{idx+1}of{len(df)}.xlsx"
+                            
+                            # 실시간 결과 테이블 유지하고 최종 상태 표시
+                            st.session_state.live_results = live_merged_results
+                            
+                            if st.session_state.stop_processing:
+                                status_text.warning(f"테스트 중지됨: {total_tasks}개 중 {processed}개 처리됨 ({successful}개 성공, {failed}개 실패)")
+                            else:
+                                status_text.markdown(f'<div class="info-text">테스트 완료: {total_tasks}개 작업 중 <span class="success-text">{successful}개 성공</span>, <span class="error-text">{failed}개 실패</span></div>', unsafe_allow_html=True)
+                            
+                            # 오류 로그 표시
+                            if error_log:
+                                with st.expander("오류 로그 보기"):
+                                    for error in error_log:
+                                        st.error(error)
+                            
+                            # 결과 저장 및 다운로드
+                            now = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            output_filename = f"api_comparison_results_{now}.xlsx"
+                            
+                            # 엑셀 파일 생성
+                            output = BytesIO()
+                            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                                # 합쳐진 결과 시트
+                                merged_df.to_excel(writer, index=False, sheet_name='통합 결과')
+                                
+                                # 각 데이터셋별 결과 시트
+                                for dataset in batch_selected_dataset_names:
+                                    display_df = result_dfs[dataset][['question', f'{dataset}_embedding_search_top10_with_score', f'{dataset}_llm_top1', f'{dataset}_status']]
+                                    display_df.columns = ['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태']
+                                    display_df.to_excel(writer, index=False, sheet_name=f'{dataset} 결과')
+                            
+                            # 다운로드 버튼
+                            st.download_button(
+                                label="비교 결과 다운로드",
+                                data=output.getvalue(),
+                                file_name=output_filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+        
+        except Exception as e:
+            st.error(f"파일 처리 중 오류 발생: {str(e)}")
+
+# 단일 테스트 탭
+with tab2:
+    st.markdown('<div class="sub-header">단일 질문 테스트</div>', unsafe_allow_html=True)
+    
+    # 데이터셋 선택 (라디오 버튼으로 변경)
+    test_mode = st.radio(
+        "테스트 모드",
+        ["단일 데이터셋", "모든 데이터셋 비교"],
+        index=0,
+        key="test_mode"
+    )
+    
+    if test_mode == "단일 데이터셋":
+        # 단일 데이터셋 선택
+        single_dataset_name = st.selectbox(
+            "데이터셋 선택",
+            options=list(API_DATASETS.keys()),
+            index=0,
+            key="single_test_dataset"
+        )
+    else:
+        # 모든 데이터셋 체크박스
+        st.write("비교할 데이터셋 선택:")
+        selected_datasets = {}
+        cols = st.columns(len(API_DATASETS))
+        for i, dataset in enumerate(API_DATASETS.keys()):
+            with cols[i]:
+                selected_datasets[dataset] = st.checkbox(dataset, value=True, key=f"compare_{dataset}")
+    
+    # 타임아웃 설정
+    single_timeout = st.slider("API 요청 타임아웃 (초)", min_value=1, max_value=60, value=10)
+    
+    # 질문 입력
+    query = st.text_area("질문 입력", height=100)
+    
+    # 결과 표시 영역 미리 확보 (최상단에 검색 결과 요약 표시)
+    results_placeholder = st.empty()
+    
+    # API 직접 테스트 옵션
+    show_direct_test = st.checkbox("API 직접 테스트 보기", value=False)
+    if show_direct_test:
+        st.markdown("### API 직접 테스트")
+        st.markdown("curl 명령으로 API를 직접 테스트합니다.")
+        
+        if test_mode == "단일 데이터셋":
+            dataset_info = API_DATASETS[single_dataset_name]
+        else:
+            # 선택된 데이터셋 목록 가져오기
+            selected_dataset_names = [dataset for dataset, selected in selected_datasets.items() if selected]
+            if selected_dataset_names:
+                dataset_info = API_DATASETS[selected_dataset_names[0]]
+            else:
+                dataset_info = API_DATASETS[list(API_DATASETS.keys())[0]]
+        
+        # curl 명령 생성
+        curl_command = f"""curl --location '{API_ENDPOINT}' \\
+--header 'Content-Type: application/json' \\
+--header 'Authorization: {API_HEADERS["Authorization"]}' \\
+--header 'azureml-model-deployment: {API_HEADERS["azureml-model-deployment"]}' \\
+--data '{{
+    "user_query":"{query}",
+    "top_k":"10",
+    "index_path":"{dataset_info["index"]}",
+    "metadata_path":"{dataset_info["metadata"]}"
+}}'"""
+        
+        st.code(curl_command, language="bash")
+        
+        # 직접 테스트 버튼
+        if st.button("직접 API 테스트 실행"):
+            if not query:
+                st.error("질문을 입력해주세요.")
+            else:
+                with st.spinner("API 직접 호출 중..."):
+                    # 원시 API 호출
+                    try:
+                        payload = {
+                            "user_query": query,
+                            "top_k": "10",
+                            "index_path": dataset_info["index"],
+                            "metadata_path": dataset_info["metadata"]
+                        }
+                        
+                        st.write("API 요청 정보:")
+                        st.json({
+                            "endpoint": API_ENDPOINT,
+                            "headers": API_HEADERS,
+                            "payload": payload
+                        })
+                        
+                        response = requests.post(API_ENDPOINT, headers=API_HEADERS, json=payload, timeout=single_timeout)
+                        
+                        st.write(f"응답 상태 코드: {response.status_code}")
+                        st.write(f"응답 헤더: {dict(response.headers)}")
+                        
+                        if response.status_code == 200:
+                            try:
+                                json_response = response.json()
+                                st.success("API 응답 성공")
+                                st.subheader("API 원본 응답:")
+                                st.json(json_response)
+                                
+                                # intent_data 객체 확인 (중첩 구조 처리)
+                                if "intent_data" in json_response:
+                                    intent_data = json_response["intent_data"]
+                                else:
+                                    intent_data = json_response  # 중첩되지 않은 경우
+                                
+                                # matches에서 Top 10 결과 추출
+                                matches = intent_data.get("matches", [])
+                                top10_results = []
+                                
+                                for i, match in enumerate(matches[:10]):
+                                    intent = match.get("intent", "")
+                                    score = match.get("score", 0)
+                                    if intent:
+                                        top10_results.append(f"{i+1}. \"{intent}\" {score:.4f}")
+                                
+                                # 줄바꿈을 HTML <br> 태그로 변환하여 표에서 줄바꿈이 보이도록 함
+                                top10_text = "<br>".join(top10_results) if top10_results else "결과 없음"
+                                
+                                # reranked_matches에서 Top 1 결과 추출
+                                reranked_matches = intent_data.get("reranked_matches", [])
+                                top1_answer = reranked_matches[0].get("answer", "결과 없음") if reranked_matches else "결과 없음"
+                                
+                                # 결과 테이블로 표시 (맨 위 placeholder에)
+                                result_df = pd.DataFrame({
+                                    "질문": [query],
+                                    "Top 10 검색 결과 (intent & score)": [top10_text],
+                                    "Top 1 재순위화 결과 (answer)": [top1_answer]
+                                })
+                                
+                                # HTML 태그가 적용되도록 unsafe_allow_html=True 설정
+                                results_placeholder.write(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+                                
+                            except Exception as e:
+                                st.error(f"응답 파싱 오류: {str(e)}")
+                                st.text(f"원본 응답: {response.text[:1000]}")  # 첫 1000자만 표시
+                        else:
+                            st.error(f"API 요청 실패: 상태 코드 {response.status_code}")
+                            st.text(f"응답 내용: {response.text[:1000]}")
+                    except Exception as e:
+                        st.error(f"API 호출 중 오류 발생: {str(e)}")
+    
+    # 기존 테스트 버튼
+    if st.button("테스트 실행"):
+        if not query:
+            st.error("질문을 입력해주세요.")
+        else:
+            if test_mode == "단일 데이터셋":
+                # 단일 데이터셋 테스트
+                with st.spinner(f"{single_dataset_name} 데이터셋으로 API 호출 중..."):
+                    # API 호출
+                    response = call_api(query, single_dataset_name, single_timeout, show_debug=False)
                     
-                    download_placeholder.download_button(
-                        label="결과 Excel 파일 다운로드",
-                        data=excel_data,
-                        file_name="test_results.xlsx",
-                        mime="application/vnd.ms-excel"
+                    if "error" in response:
+                        results_placeholder.error(f"API 요청 오류: {response['error']}")
+                    else:
+                        # intent_data 객체 확인 (중첩 구조 처리)
+                        if "intent_data" in response:
+                            intent_data = response["intent_data"]
+                        else:
+                            intent_data = response  # 중첩되지 않은 경우
+                        
+                        # matches에서 Top 10 결과 추출
+                        matches = intent_data.get("matches", [])
+                        top10_results = []
+                        
+                        for i, match in enumerate(matches[:10]):
+                            intent = match.get("intent", "")
+                            score = match.get("score", 0)
+                            if intent:
+                                top10_results.append(f"{i+1}. \"{intent}\" {score:.4f}")
+                        
+                        # 줄바꿈을 HTML <br> 태그로 변환하여 표에서 줄바꿈이 보이도록 함
+                        top10_text = "<br>".join(top10_results) if top10_results else "결과 없음"
+                        
+                        # reranked_matches에서 Top 1 결과 추출
+                        reranked_matches = intent_data.get("reranked_matches", [])
+                        top1_answer = reranked_matches[0].get("answer", "결과 없음") if reranked_matches else "결과 없음"
+                        
+                        # 결과 테이블로 표시 (맨 위 placeholder에)
+                        result_df = pd.DataFrame({
+                            "질문": [query],
+                            "Top 10 검색 결과 (intent & score)": [top10_text],
+                            "Top 1 재순위화 결과 (answer)": [top1_answer]
+                        })
+                        
+                        # HTML 태그가 적용되도록 unsafe_allow_html=True 설정
+                        results_placeholder.write(result_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+                        
+                    # 원본 응답 데이터 확인 (선택적으로 보이게)
+                    with st.expander("원본 API 응답 보기"):
+                        st.json(response)
+                        
+                        if "intent_data" in response:
+                            intent_data = response["intent_data"]
+                            st.write("API 응답이 intent_data 객체 안에 중첩되어 있습니다.")
+                            
+                            if "matches" in intent_data:
+                                st.write(f"matches 개수: {len(intent_data['matches'])}")
+                                st.write("첫 번째 matches 항목 예시:")
+                                st.json(intent_data["matches"][0] if intent_data["matches"] else "매치 없음")
+                            
+                            if "reranked_matches" in intent_data:
+                                st.write(f"reranked_matches 개수: {len(intent_data['reranked_matches'])}")
+                                st.write("첫 번째 reranked_matches 항목 예시:")
+                                st.json(intent_data["reranked_matches"][0] if intent_data["reranked_matches"] else "재순위화 결과 없음")
+                        else:
+                            if "matches" in response:
+                                st.write("첫 번째 matches 항목 예시:")
+                                st.json(response["matches"][0] if response["matches"] else "매치 없음")
+                            
+                            if "reranked_matches" in response:
+                                st.write("첫 번째 reranked_matches 항목 예시:")
+                                st.json(response["reranked_matches"][0] if response["reranked_matches"] else "재순위화 결과 없음")
+            else:
+                # 여러 데이터셋 비교 테스트
+                selected_dataset_names = [dataset for dataset, selected in selected_datasets.items() if selected]
+                
+                if not selected_dataset_names:
+                    st.error("최소한 하나의 데이터셋을 선택해주세요.")
+                else:
+                    # 각 데이터셋별 결과 저장용 테이블 준비
+                    comparison_data = []
+                    
+                    for dataset_name in selected_dataset_names:
+                        with st.spinner(f"{dataset_name} 데이터셋으로 API 호출 중..."):
+                            # API 호출
+                            response = call_api(query, dataset_name, single_timeout)
+                            
+                            if "error" in response:
+                                row = {
+                                    "데이터셋": dataset_name,
+                                    "Top 10 검색 결과 (intent & score)": response["error"],
+                                    "Top 1 재순위화 결과 (answer)": response["error"]
+                                }
+                            else:
+                                # intent_data 객체 확인 (중첩 구조 처리)
+                                if "intent_data" in response:
+                                    intent_data = response["intent_data"]
+                                else:
+                                    intent_data = response  # 중첩되지 않은 경우
+                                
+                                # matches에서 Top 10 결과 추출
+                                matches = intent_data.get("matches", [])
+                                top10_results = []
+                                
+                                for i, match in enumerate(matches[:10]):
+                                    intent = match.get("intent", "")
+                                    score = match.get("score", 0)
+                                    if intent:
+                                        top10_results.append(f"{i+1}. \"{intent}\" {score:.4f}")
+                                
+                                # 줄바꿈을 HTML <br> 태그로 변환하여 표에서 줄바꿈이 보이도록 함
+                                top10_text = "<br>".join(top10_results) if top10_results else "결과 없음"
+                                
+                                # reranked_matches에서 Top 1 결과 추출
+                                reranked_matches = intent_data.get("reranked_matches", [])
+                                top1_answer = reranked_matches[0].get("answer", "결과 없음") if reranked_matches else "결과 없음"
+                                
+                                row = {
+                                    "데이터셋": dataset_name,
+                                    "Top 10 검색 결과 (intent & score)": top10_text,
+                                    "Top 1 재순위화 결과 (answer)": top1_answer
+                                }
+                            
+                            comparison_data.append(row)
+                            
+                            # 전체 응답도 저장
+                            st.session_state[f"response_{dataset_name}"] = response
+                    
+                    # 비교 테이블 표시 (맨 위 placeholder에) - HTML 태그가 적용되도록 
+                    results_placeholder.subheader("데이터셋 비교 결과")
+                    comparison_df = pd.DataFrame(comparison_data)
+                    results_placeholder.write(comparison_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+                    
+                    # 전체 응답 보기 옵션
+                    st.subheader("전체 응답 보기")
+                    selected_dataset_for_details = st.selectbox(
+                        "상세 응답을 볼 데이터셋 선택:",
+                        options=selected_dataset_names
                     )
                     
-                    # 추가 통계 정보
-                    success_count = sum(1 for col in df["Embedding Search Top 10"] if "오류" not in str(col))
-                    error_count = len(df) - success_count
+                    if selected_dataset_for_details:
+                        with st.expander(f"{selected_dataset_for_details} 전체 응답"):
+                            st.json(st.session_state[f"response_{selected_dataset_for_details}"])
                     
-                    st.subheader("처리 통계")
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("총 질문 수", len(df))
-                    col2.metric("성공", success_count)
-                    col3.metric("실패", error_count)
+                    # 비교 결과 다운로드 - 엑셀에서는 <br> 대신 줄바꿈 문자 사용
+                    comparison_excel_df = comparison_df.copy()
+                    for i, row in comparison_excel_df.iterrows():
+                        if isinstance(row["Top 10 검색 결과 (intent & score)"], str) and "<br>" in row["Top 10 검색 결과 (intent & score)"]:
+                            comparison_excel_df.at[i, "Top 10 검색 결과 (intent & score)"] = row["Top 10 검색 결과 (intent & score)"].replace("<br>", "\n")
                     
-        except Exception as e:
-            logger.error(f"파일 읽기 오류: {str(e)}\n{traceback.format_exc()}")
-            st.error(f"파일 읽기 오류: {str(e)}")
+                    output = BytesIO()
+                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                        comparison_excel_df.to_excel(writer, index=False, sheet_name='데이터셋 비교 결과')
+                        # 셀 서식 지정 - 자동 줄바꿈 활성화
+                        workbook = writer.book
+                        worksheet = writer.sheets['데이터셋 비교 결과']
+                        wrap_format = workbook.add_format({'text_wrap': True})
+                        # Top 10 검색 결과 컬럼에 자동 줄바꿈 적용
+                        worksheet.set_column('B:B', 60, wrap_format)
+                    
+                    st.download_button(
+                        label="비교 결과 다운로드",
+                        data=output.getvalue(),
+                        file_name=f"dataset_comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    ) 
