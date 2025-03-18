@@ -75,8 +75,18 @@ API_DATASETS = {
     "Yeom": {
         "index": "faiss_index/embedding dataset-0314-Yeom-0313_v20250315_002545.index",
         "metadata": "faiss_index/embedding dataset-0314-Yeom-0313_v20250315_002545.csv"
+    },
+    "Other": {
+        "index": "faiss_index/your_custom_index_file.index",
+        "metadata": "faiss_index/your_custom_metadata_file.csv"
     }
 }
+
+# Other 데이터셋을 위한 세션 상태 초기화
+if 'other_index_path' not in st.session_state:
+    st.session_state.other_index_path = API_DATASETS["Other"]["index"]
+if 'other_metadata_path' not in st.session_state:
+    st.session_state.other_metadata_path = API_DATASETS["Other"]["metadata"]
 
 # API 엔드포인트와 인증 데이터 (제공된 curl 명령과 동일하게 업데이트)
 API_ENDPOINT = "https://ai-human-chatbot-roasu.koreacentral.inference.ml.azure.com/score"
@@ -110,9 +120,36 @@ with st.sidebar:
     
     st.markdown('<div class="sub-header">데이터셋 정보</div>', unsafe_allow_html=True)
     for dataset_name, info in API_DATASETS.items():
-        with st.expander(f"{dataset_name} 데이터셋"):
-            st.markdown(f"**인덱스 파일:** `{info['index']}`")
-            st.markdown(f"**메타데이터 파일:** `{info['metadata']}`")
+        if dataset_name != "Other":
+            with st.expander(f"{dataset_name} 데이터셋"):
+                st.markdown(f"**인덱스 파일:** `{info['index']}`")
+                st.markdown(f"**메타데이터 파일:** `{info['metadata']}`")
+    
+    # Other 데이터셋 설정 (사용자 정의)
+    with st.expander("Other 데이터셋 (사용자 정의)", expanded=True):
+        st.write("인덱스 및 메타데이터 파일 경로를 직접 입력하세요:")
+        
+        # 인덱스 파일 경로 입력
+        other_index = st.text_input(
+            "인덱스 파일 경로", 
+            value=st.session_state.other_index_path,
+            key="other_index_input"
+        )
+        
+        # 메타데이터 파일 경로 입력
+        other_metadata = st.text_input(
+            "메타데이터 파일 경로", 
+            value=st.session_state.other_metadata_path,
+            key="other_metadata_input"
+        )
+        
+        # 세션 상태 및 API_DATASETS 업데이트
+        if other_index != st.session_state.other_index_path or other_metadata != st.session_state.other_metadata_path:
+            st.session_state.other_index_path = other_index
+            st.session_state.other_metadata_path = other_metadata
+            API_DATASETS["Other"]["index"] = other_index
+            API_DATASETS["Other"]["metadata"] = other_metadata
+            st.success("Other 데이터셋 정보가 업데이트되었습니다.")
     
     st.markdown("---")
     
@@ -149,6 +186,11 @@ with st.sidebar:
 def call_api(query, dataset_name, timeout=10, max_retries=3, show_debug=False):
     """API 호출 및 응답 처리 함수"""
     dataset_info = API_DATASETS[dataset_name]
+    
+    # Other 데이터셋인 경우 경로 유효성 확인
+    if dataset_name == "Other":
+        if not dataset_info["index"] or not dataset_info["metadata"]:
+            return {"error": "Other 데이터셋의 인덱스 파일 또는 메타데이터 파일 경로가 설정되지 않았습니다."}
     
     # payload 구성 - curl 명령 형식에 맞춤
     payload = {
@@ -330,10 +372,22 @@ with tab1:
         # 비교할 데이터셋 선택
         st.write("비교할 데이터셋 선택:")
         batch_selected_datasets = {}
-        batch_cols = st.columns(len(API_DATASETS))
-        for i, dataset in enumerate(API_DATASETS.keys()):
-            with batch_cols[i]:
-                batch_selected_datasets[dataset] = st.checkbox(dataset, value=True, key=f"batch_compare_{dataset}")
+        
+        # 레이아웃을 위해 2행 2열 구조로 변경
+        row1_cols = st.columns(2)
+        row2_cols = st.columns(2)
+        
+        # 첫 번째 행에 Hans와 Nam 배치
+        with row1_cols[0]:
+            batch_selected_datasets["Hans"] = st.checkbox("Hans", value=True, key=f"batch_compare_Hans")
+        with row1_cols[1]:
+            batch_selected_datasets["Nam"] = st.checkbox("Nam", value=True, key=f"batch_compare_Nam")
+        
+        # 두 번째 행에 Yeom과 Other 배치
+        with row2_cols[0]:
+            batch_selected_datasets["Yeom"] = st.checkbox("Yeom", value=True, key=f"batch_compare_Yeom")
+        with row2_cols[1]:
+            batch_selected_datasets["Other"] = st.checkbox("Other (사용자 정의)", value=False, key=f"batch_compare_Other")
         
         batch_selected_dataset_names = [dataset for dataset, selected in batch_selected_datasets.items() if selected]
         if not batch_selected_dataset_names:
@@ -375,6 +429,14 @@ with tab1:
                     if batch_test_mode == "데이터셋 비교" and not batch_selected_dataset_names:
                         st.error("최소한 하나의 데이터셋을 선택해주세요.")
                     else:
+                        # Other 데이터셋이 사용되는 경우 세션 상태에서 최신 경로 업데이트
+                        if batch_test_mode == "단일 데이터셋" and dataset_name == "Other":
+                            API_DATASETS["Other"]["index"] = st.session_state.other_index_path
+                            API_DATASETS["Other"]["metadata"] = st.session_state.other_metadata_path
+                        elif batch_test_mode == "데이터셋 비교" and "Other" in batch_selected_dataset_names:
+                            API_DATASETS["Other"]["index"] = st.session_state.other_index_path
+                            API_DATASETS["Other"]["metadata"] = st.session_state.other_metadata_path
+                        
                         # 처리 시작 플래그 설정
                         st.session_state.is_processing = True
                         st.session_state.stop_processing = False
@@ -769,10 +831,22 @@ with tab2:
         # 모든 데이터셋 체크박스
         st.write("비교할 데이터셋 선택:")
         selected_datasets = {}
-        cols = st.columns(len(API_DATASETS))
-        for i, dataset in enumerate(API_DATASETS.keys()):
-            with cols[i]:
-                selected_datasets[dataset] = st.checkbox(dataset, value=True, key=f"compare_{dataset}")
+        
+        # 레이아웃을 위해 2행 2열 구조로 변경
+        row1_cols = st.columns(2)
+        row2_cols = st.columns(2)
+        
+        # 첫 번째 행에 Hans와 Nam 배치
+        with row1_cols[0]:
+            selected_datasets["Hans"] = st.checkbox("Hans", value=True, key=f"compare_Hans")
+        with row1_cols[1]:
+            selected_datasets["Nam"] = st.checkbox("Nam", value=True, key=f"compare_Nam")
+        
+        # 두 번째 행에 Yeom과 Other 배치
+        with row2_cols[0]:
+            selected_datasets["Yeom"] = st.checkbox("Yeom", value=True, key=f"compare_Yeom")
+        with row2_cols[1]:
+            selected_datasets["Other"] = st.checkbox("Other (사용자 정의)", value=False, key=f"compare_Other")
     
     # 타임아웃 설정
     single_timeout = st.slider("API 요청 타임아웃 (초)", min_value=1, max_value=60, value=10)
@@ -800,6 +874,18 @@ with tab2:
                 dataset_info = API_DATASETS[list(API_DATASETS.keys())[0]]
         
         # curl 명령 생성
+        # Other 데이터셋인 경우 세션 상태에서 최신 경로 가져오기
+        index_path = dataset_info["index"]
+        metadata_path = dataset_info["metadata"]
+        
+        if (test_mode == "단일 데이터셋" and single_dataset_name == "Other") or \
+           (test_mode != "단일 데이터셋" and selected_dataset_names and selected_dataset_names[0] == "Other"):
+            index_path = st.session_state.other_index_path
+            metadata_path = st.session_state.other_metadata_path
+            # 세션 상태 값으로 API_DATASETS 업데이트 (동기화 유지)
+            API_DATASETS["Other"]["index"] = index_path
+            API_DATASETS["Other"]["metadata"] = metadata_path
+        
         curl_command = f"""curl --location '{API_ENDPOINT}' \\
 --header 'Content-Type: application/json' \\
 --header 'Authorization: {API_HEADERS["Authorization"]}' \\
@@ -807,8 +893,8 @@ with tab2:
 --data '{{
     "user_query":"{query}",
     "top_k":"10",
-    "index_path":"{dataset_info["index"]}",
-    "metadata_path":"{dataset_info["metadata"]}"
+    "index_path":"{index_path}",
+    "metadata_path":"{metadata_path}"
 }}'"""
         
         st.code(curl_command, language="bash")
@@ -824,8 +910,8 @@ with tab2:
                         payload = {
                             "user_query": query,
                             "top_k": "10",
-                            "index_path": dataset_info["index"],
-                            "metadata_path": dataset_info["metadata"]
+                            "index_path": index_path,
+                            "metadata_path": metadata_path
                         }
                         
                         st.write("API 요청 정보:")
@@ -895,6 +981,11 @@ with tab2:
             st.error("질문을 입력해주세요.")
         else:
             if test_mode == "단일 데이터셋":
+                # Other 데이터셋인 경우 세션 상태에서 최신 경로 가져오기
+                if single_dataset_name == "Other":
+                    API_DATASETS["Other"]["index"] = st.session_state.other_index_path
+                    API_DATASETS["Other"]["metadata"] = st.session_state.other_metadata_path
+                
                 # 단일 데이터셋 테스트
                 with st.spinner(f"{single_dataset_name} 데이터셋으로 API 호출 중..."):
                     # API 호출
@@ -968,6 +1059,11 @@ with tab2:
                 if not selected_dataset_names:
                     st.error("최소한 하나의 데이터셋을 선택해주세요.")
                 else:
+                    # Other 데이터셋이 선택된 경우 세션 상태에서 최신 경로 업데이트
+                    if "Other" in selected_dataset_names:
+                        API_DATASETS["Other"]["index"] = st.session_state.other_index_path
+                        API_DATASETS["Other"]["metadata"] = st.session_state.other_metadata_path
+                    
                     # 각 데이터셋별 결과 저장용 테이블 준비
                     comparison_data = []
                     
