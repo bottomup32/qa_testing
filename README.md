@@ -1,83 +1,91 @@
 # API 테스트 자동화 도구
 
-이 애플리케이션은 CSV 또는 Excel 파일에 포함된 질문들을 API에 배치 호출하여 응답에서 특정 정보를 추출 후 엑셀 파일로 저장합니다.
+이 프로젝트는 API 엔드포인트를 테스트하고 결과를 비교하는 자동화 도구입니다.
 
 ## 주요 기능
 
-- CSV 또는 Excel 파일에서 질문 목록 로드
-- 여러 데이터셋 옵션 지원 (Hans, Nam, Yeom)
-- 각 질문에 대한 API 호출 및 응답 처리
-- "Embedding search top 10"과 "LLM Top 3" 정보 추출
-- 여러 데이터셋 간 비교 기능
-- 결과를 엑셀 파일로 다운로드
-- 타임아웃 및 오류 복구 기능 지원
-- 중간 결과 저장 및 다운로드
-- 단일 질문 테스트 및 결과 비교 기능
+- 단일 질문 테스트
+  - 단일 데이터셋 테스트
+  - 여러 데이터셋 비교 테스트
+  - API 직접 테스트 (curl 명령어 제공)
+
+- 배치 테스트
+  - CSV/Excel 파일에서 질문 일괄 처리
+  - 단일/다중 데이터셋 비교
+  - 실시간 결과 모니터링
+  - 중간 결과 저장 및 다운로드
 
 ## 설치 방법
 
+1. 저장소 클론
+```bash
+git clone https://github.com/bottomup32/qa_testing.git
+cd qa_testing
+```
+
+2. 가상환경 생성 및 활성화
+```bash
+python -m venv venv
+source venv/Scripts/activate  # Windows
+source venv/bin/activate     # Linux/Mac
+```
+
+3. 필요한 패키지 설치
 ```bash
 pip install -r requirements.txt
 ```
 
 ## 실행 방법
 
+### Windows
+```bash
+run_app.bat
+```
+
+### Linux/Mac
 ```bash
 streamlit run app.py
 ```
 
+## 프로젝트 구조
+
+```
+qa_testing/
+├── app.py              # 메인 애플리케이션 코드
+├── run_app.bat         # Windows 실행 스크립트
+├── requirements.txt    # Python 패키지 의존성
+├── .streamlit/        # Streamlit 설정
+│   └── config.toml    # Streamlit 설정 파일
+└── README.md          # 프로젝트 문서
+```
+
 ## 사용 방법
 
-### 배치 테스트
+1. 단일 테스트
+   - "단일 테스트" 탭 선택
+   - 테스트 모드 선택 (단일/비교)
+   - 질문 입력
+   - 추가 API 파라미터 설정 (선택사항)
+   - 테스트 실행
 
-1. 웹 인터페이스에서 '배치 테스트' 탭 선택
-2. 단일 데이터셋 또는 데이터셋 비교 모드 선택
-3. 테스트할 데이터셋 선택
-4. `question` 컬럼이 포함된 CSV 또는 Excel 파일 업로드
-5. 배치 크기, 타임아웃, 재시도 횟수 설정
-6. 'API 테스트 실행' 버튼 클릭
-7. 테스트 완료 후 결과 엑셀 파일 다운로드
+2. 배치 테스트
+   - "배치 테스트" 탭 선택
+   - CSV/Excel 파일 업로드
+   - 테스트 모드 및 데이터셋 선택
+   - 배치 크기 및 타임아웃 설정
+   - 테스트 실행
 
-### 단일 테스트
+## API 설정
 
-1. 웹 인터페이스에서 '단일 테스트' 탭 선택
-2. 단일 데이터셋 또는 여러 데이터셋 비교 모드 선택
-3. 테스트할 데이터셋 선택
-4. 질문 입력
-5. '테스트 실행' 버튼 클릭
-6. 결과 확인
+- API 엔드포인트, 인증 토큰, 배포 이름을 사이드바에서 설정 가능
+- "Other" 데이터셋의 경우 사용자 정의 인덱스/메타데이터 파일 경로 지정 가능
 
-## 입력 파일 요구사항
+## 결과 출력
 
-- CSV 또는 Excel 파일 형식
-- `question` 컬럼 포함
+- 실시간 테스트 결과 표시
+- Excel 형식으로 결과 다운로드
+- 오류 로그 확인
 
-## 결과 파일 형식
+## 라이선스
 
-- Excel 파일 (xlsx)
-- 질문, 상태, Embedding Search Top 10, LLM Top 3 정보 포함
-- 데이터셋 비교 시 각 데이터셋별 결과 시트 포함
-
-## 필요한 데이터
-
-애플리케이션을 실행하기 위해서는 다음 경로에 FAISS 인덱스 및 메타데이터 파일이 필요합니다:
-
-```
-faiss_index/embedding dataset-0314-Hans-0313_v20250314_222213.index
-faiss_index/embedding dataset-0314-Hans-0313_v20250314_222213.csv
-faiss_index/embedding dataset-0314-Nam-0313_v20250315_002250.index
-faiss_index/embedding dataset-0314-Nam-0313_v20250315_002250.csv
-faiss_index/embedding dataset-0314-Yeom-0313_v20250315_002545.index
-faiss_index/embedding dataset-0314-Yeom-0313_v20250315_002545.csv
-```
-
-## 오류 처리
-
-- API 타임아웃 발생 시 자동 재시도 (최대 재시도 횟수 설정 가능)
-- 오류 발생 시 로그 기록 및 표시
-- 배치 처리 중 중간 결과 저장
-
-## 주의사항
-
-- 대량의 질문을 처리할 경우 API 서버의 부하와 속도 제한을 고려하여 배치 크기와 딜레이를 적절히 설정하세요.
-- 중요한 테스트의 경우 중간 결과를 주기적으로 다운로드하여 데이터 손실을 방지하세요. 
+MIT License 

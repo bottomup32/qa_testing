@@ -62,6 +62,16 @@ if 'live_results' not in st.session_state:
 if 'is_processing' not in st.session_state:
     st.session_state.is_processing = False
 
+# API 설정을 위한 세션 상태 초기화
+if 'api_endpoint' not in st.session_state:
+    st.session_state.api_endpoint = "https://ai-human-chatbot-iotlg.koreacentral.inference.ml.azure.com/score"
+if 'api_auth_token' not in st.session_state:
+    st.session_state.api_auth_token = "Bearer 4rhy4EI7ZR6bt8MjzgaUFw0Z9Bw09rmbTsHhXt0hlB5mdeYxmGjlJQQJ99BCAAAAAAAAAAAAINFRAZML1Oh4"
+if 'api_deployment' not in st.session_state:
+    st.session_state.api_deployment = "ai-human-chatbot-iotlg-2"
+if 'api_config_updated' not in st.session_state:
+    st.session_state.api_config_updated = False
+
 # API 설정 데이터 (사이드바보다 먼저 정의)
 API_DATASETS = {
     "Hans": {
@@ -88,13 +98,19 @@ if 'other_index_path' not in st.session_state:
 if 'other_metadata_path' not in st.session_state:
     st.session_state.other_metadata_path = API_DATASETS["Other"]["metadata"]
 
-# API 엔드포인트와 인증 데이터 (제공된 curl 명령과 동일하게 업데이트)
-API_ENDPOINT = "https://ai-human-chatbot-roasu.koreacentral.inference.ml.azure.com/score"
+# API 엔드포인트와 인증 데이터 (세션 상태의 값 사용)
+API_ENDPOINT = st.session_state.api_endpoint
 API_HEADERS = {
     "Content-Type": "application/json",
-    "Authorization": "Bearer BV3RjJz66FNP82LSkw6SU1905E57UgOMizCuAe3y63atc5Wwj5HXJQQJ99BCAAAAAAAAAAAAINFRAZML1o4N",
-    "azureml-model-deployment": "ai-human-chatbot-roasu-4"
+    "Authorization": st.session_state.api_auth_token,
+    "azureml-model-deployment": st.session_state.api_deployment
 }
+
+# API 설정이 변경된 경우, 페이지 새로고침 시 설정 유지
+if st.session_state.api_config_updated:
+    # 이미 세션 상태의 값이 사용되었으므로 추가 동작 필요 없음
+    # 변경 표시기 재설정
+    st.session_state.api_config_updated = False
 
 # 사이드바 설정
 with st.sidebar:
@@ -108,13 +124,61 @@ with st.sidebar:
     st.markdown("---")
     
     st.markdown('<div class="sub-header">API 정보</div>', unsafe_allow_html=True)
-    st.code("""
-엔드포인트: https://ai-human-chatbot-roasu.koreacentral.inference.ml.azure.com/score
+    st.code(f"""
+엔드포인트: {API_ENDPOINT}
 헤더:
   - Content-Type: application/json
-  - Authorization: Bearer BV3RjJz6...
-  - azureml-model-deployment: ai-human-chatbot-roasu-4
+  - Authorization: {API_HEADERS["Authorization"][:20]}...
+  - azureml-model-deployment: {API_HEADERS["azureml-model-deployment"]}
     """)
+    
+    st.markdown("---")
+    
+    # API 설정 섹션 추가
+    st.markdown('<div class="sub-header">API 설정 변경</div>', unsafe_allow_html=True)
+    with st.expander("API 설정 변경", expanded=False):
+        st.write("API 엔드포인트 및 헤더 정보를 직접 설정할 수 있습니다.")
+        
+        # API 엔드포인트 입력
+        new_api_endpoint = st.text_input(
+            "API 엔드포인트 URL", 
+            value=st.session_state.api_endpoint,
+            placeholder="https://your-api-endpoint.com/score"
+        )
+        
+        # API 인증 토큰 입력
+        new_api_auth_token = st.text_input(
+            "Authorization 헤더 값", 
+            value=st.session_state.api_auth_token,
+            placeholder="Bearer your-auth-token-here",
+            help="Bearer 접두어를 포함한 전체 토큰 값을 입력하세요."
+        )
+        
+        # API 배포 이름 입력
+        new_api_deployment = st.text_input(
+            "azureml-model-deployment 값", 
+            value=st.session_state.api_deployment,
+            placeholder="your-deployment-name"
+        )
+        
+        # 변경사항 적용 버튼
+        if st.button("API 설정 적용"):
+            # 세션 상태 업데이트
+            st.session_state.api_endpoint = new_api_endpoint
+            st.session_state.api_auth_token = new_api_auth_token
+            st.session_state.api_deployment = new_api_deployment
+            st.session_state.api_config_updated = True
+            
+            # API_ENDPOINT 및 API_HEADERS 변수 업데이트
+            globals()['API_ENDPOINT'] = new_api_endpoint
+            globals()['API_HEADERS'] = {
+                "Content-Type": "application/json",
+                "Authorization": new_api_auth_token,
+                "azureml-model-deployment": new_api_deployment
+            }
+            
+            st.success("API 설정이 성공적으로 업데이트되었습니다!")
+            st.info("새 설정은 다음 API 요청부터 적용됩니다.")
     
     st.markdown("---")
     
@@ -183,7 +247,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # API 요청 함수 개선
-def call_api(query, dataset_name, timeout=10, max_retries=3, show_debug=False):
+def call_api(query, dataset_name, timeout=10, max_retries=3, show_debug=False, prev_intents="", prev_products="", context=""):
     """API 호출 및 응답 처리 함수"""
     dataset_info = API_DATASETS[dataset_name]
     
@@ -192,12 +256,15 @@ def call_api(query, dataset_name, timeout=10, max_retries=3, show_debug=False):
         if not dataset_info["index"] or not dataset_info["metadata"]:
             return {"error": "Other 데이터셋의 인덱스 파일 또는 메타데이터 파일 경로가 설정되지 않았습니다."}
     
-    # payload 구성 - curl 명령 형식에 맞춤
+    # payload 구성 - 새로운 API 형식에 맞춤
     payload = {
         "user_query": query,
         "top_k": "10",
         "index_path": dataset_info["index"],
-        "metadata_path": dataset_info["metadata"]
+        "metadata_path": dataset_info["metadata"],
+        "prev_intents": prev_intents,
+        "prev_products": prev_products,
+        "context": context
     }
     
     # 디버깅용: 요청 페이로드와 헤더 출력 (show_debug가 True인 경우)
@@ -279,6 +346,16 @@ def extract_info(response, show_debug=False):
         # 응답 키 확인 (디버깅)
         if show_debug:
             st.write("응답 키:", list(intent_data.keys()) if isinstance(intent_data, dict) else "응답이 dict 형식이 아님")
+            if "refined_user_query" in intent_data:
+                st.write("정제된 사용자 질문:", intent_data["refined_user_query"])
+            if "used_index_path" in intent_data:
+                st.write("사용된 인덱스 경로:", intent_data["used_index_path"])
+            if "used_metadata_path" in intent_data:
+                st.write("사용된 메타데이터 경로:", intent_data["used_metadata_path"])
+            if "prev_intents" in intent_data:
+                st.write("이전 의도:", intent_data["prev_intents"])
+            if "prev_products" in intent_data:
+                st.write("이전 제품:", intent_data["prev_products"])
         
         # Top 10 Embedding Search Intent 추출
         matches = intent_data.get("matches", [])
@@ -396,6 +473,12 @@ with tab1:
     # 파일 업로드
     uploaded_file = st.file_uploader("CSV 또는 Excel 파일 업로드 (첫 번째 컬럼을 질문으로 사용)", type=["csv", "xlsx"])
     
+    # 새로운 API 파라미터 추가
+    with st.expander("추가 API 파라미터 설정", expanded=False):
+        batch_prev_intents = st.text_input("이전 의도 (prev_intents)", "", key="batch_prev_intents")
+        batch_prev_products = st.text_input("이전 제품 (prev_products)", "", key="batch_prev_products")
+        batch_context = st.text_area("컨텍스트 (context)", "", height=100, key="batch_context")
+    
     if uploaded_file is not None:
         try:
             # 파일 형식에 따라 로드
@@ -495,7 +578,16 @@ with tab1:
                                         # API 호출 - 배치 처리에서는 디버그 비활성화
                                         with st.expander(f"질문 {processed+1}/{total_questions} 처리 중", expanded=False):
                                             st.write(f"질문: {query}")
-                                            response = call_api(query, dataset_name, timeout_seconds, max_retries, show_debug=False)
+                                            response = call_api(
+                                                query=query, 
+                                                dataset_name=dataset_name, 
+                                                timeout=timeout_seconds, 
+                                                max_retries=max_retries, 
+                                                show_debug=False,
+                                                prev_intents=batch_prev_intents,
+                                                prev_products=batch_prev_products,
+                                                context=batch_context
+                                            )
                                             
                                             if "error" in response:
                                                 st.error(f"오류 발생: {response['error']}")
@@ -674,7 +766,16 @@ with tab1:
                                             # API 호출 - 배치 처리에서는 디버그 비활성화
                                             with st.expander(f"질문 {idx+1}/{len(df)} - {dataset} 처리 중", expanded=False):
                                                 st.write(f"질문: {query}")
-                                                response = call_api(query, dataset, timeout_seconds, max_retries, show_debug=False)
+                                                response = call_api(
+                                                    query=query, 
+                                                    dataset_name=dataset, 
+                                                    timeout=timeout_seconds, 
+                                                    max_retries=max_retries, 
+                                                    show_debug=False,
+                                                    prev_intents=batch_prev_intents,
+                                                    prev_products=batch_prev_products,
+                                                    context=batch_context
+                                                )
                                                 
                                                 if "error" in response:
                                                     st.error(f"오류 발생: {response['error']}")
@@ -796,7 +897,6 @@ with tab1:
                                     display_df.columns = ['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태']
                                     display_df.to_excel(writer, index=False, sheet_name=f'{dataset} 결과')
                             
-                            # 다운로드 버튼
                             st.download_button(
                                 label="비교 결과 다운로드",
                                 data=output.getvalue(),
@@ -854,6 +954,12 @@ with tab2:
     # 질문 입력
     query = st.text_area("질문 입력", height=100)
     
+    # 새로운 API 파라미터 추가
+    with st.expander("추가 API 파라미터", expanded=False):
+        prev_intents = st.text_input("이전 의도 (prev_intents)", "", key="single_prev_intents")
+        prev_products = st.text_input("이전 제품 (prev_products)", "", key="single_prev_products")
+        context = st.text_area("컨텍스트 (context)", "", height=100, key="single_context")
+    
     # 결과 표시 영역 미리 확보 (최상단에 검색 결과 요약 표시)
     results_placeholder = st.empty()
     
@@ -894,7 +1000,10 @@ with tab2:
     "user_query":"{query}",
     "top_k":"10",
     "index_path":"{index_path}",
-    "metadata_path":"{metadata_path}"
+    "metadata_path":"{metadata_path}",
+    "prev_intents":"{prev_intents}",
+    "prev_products":"{prev_products}",
+    "context":"{context}"
 }}'"""
         
         st.code(curl_command, language="bash")
@@ -911,7 +1020,10 @@ with tab2:
                             "user_query": query,
                             "top_k": "10",
                             "index_path": index_path,
-                            "metadata_path": metadata_path
+                            "metadata_path": metadata_path,
+                            "prev_intents": prev_intents,
+                            "prev_products": prev_products,
+                            "context": context
                         }
                         
                         st.write("API 요청 정보:")
@@ -988,8 +1100,16 @@ with tab2:
                 
                 # 단일 데이터셋 테스트
                 with st.spinner(f"{single_dataset_name} 데이터셋으로 API 호출 중..."):
-                    # API 호출
-                    response = call_api(query, single_dataset_name, single_timeout, show_debug=False)
+                    # API 호출 - 새로운 파라미터 포함
+                    response = call_api(
+                        query=query, 
+                        dataset_name=single_dataset_name, 
+                        timeout=single_timeout, 
+                        show_debug=False,
+                        prev_intents=prev_intents,
+                        prev_products=prev_products,
+                        context=context
+                    )
                     
                     if "error" in response:
                         results_placeholder.error(f"API 요청 오류: {response['error']}")
@@ -1069,8 +1189,16 @@ with tab2:
                     
                     for dataset_name in selected_dataset_names:
                         with st.spinner(f"{dataset_name} 데이터셋으로 API 호출 중..."):
-                            # API 호출
-                            response = call_api(query, dataset_name, single_timeout)
+                            # API 호출 - 새로운 파라미터 포함
+                            response = call_api(
+                                query=query, 
+                                dataset_name=dataset_name, 
+                                timeout=single_timeout,
+                                show_debug=False,
+                                prev_intents=prev_intents,
+                                prev_products=prev_products,
+                                context=context
+                            )
                             
                             if "error" in response:
                                 row = {
