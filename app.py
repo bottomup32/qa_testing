@@ -334,7 +334,13 @@ def call_api(query, dataset_name, timeout=10, max_retries=3, show_debug=False, p
 def extract_info(response, show_debug=False):
     """API 응답에서 필요한 정보 추출"""
     if "error" in response:
-        return {"embedding_search_top10": response["error"], "embedding_search_top10_with_score": response["error"], "llm_top1": response["error"]}
+        return {
+            "embedding_search_top10": response["error"], 
+            "embedding_search_top10_with_score": response["error"], 
+            "llm_top1": response["error"],
+            "embedding_total_tokens": "오류",
+            "reranker_total_tokens": "오류"
+        }
     
     try:
         # intent_data 객체 확인 (중첩 구조 처리)
@@ -392,11 +398,26 @@ def extract_info(response, show_debug=False):
         if reranked_matches and len(reranked_matches) > 0:
             llm_top1 = reranked_matches[0].get("answer", "")
         
+        # 토큰 사용량 추출
+        embedding_total_tokens = "정보 없음"
+        reranker_total_tokens = "정보 없음"
+        
+        if "token_usage" in intent_data:
+            token_usage = intent_data["token_usage"]
+            embedding_total_tokens = token_usage.get("embedding_total_tokens", "정보 없음")
+            reranker_total_tokens = token_usage.get("reranker_total_tokens", "정보 없음")
+            
+            if show_debug:
+                st.write("토큰 사용량:")
+                st.json(token_usage)
+        
         # 결과 생성 - 줄바꿈을 HTML <br> 태그로 변환하여 표에서 줄바꿈이 보이도록 함
         result = {
             "embedding_search_top10": ", ".join(embedding_search_top10) if embedding_search_top10 else "결과 없음",
             "embedding_search_top10_with_score": "<br>".join(embedding_search_top10_with_score) if embedding_search_top10_with_score else "결과 없음",
-            "llm_top1": llm_top1 if llm_top1 else "결과 없음"
+            "llm_top1": llm_top1 if llm_top1 else "결과 없음",
+            "embedding_total_tokens": embedding_total_tokens,
+            "reranker_total_tokens": reranker_total_tokens
         }
         
         if show_debug:
@@ -411,7 +432,9 @@ def extract_info(response, show_debug=False):
             st.code(traceback.format_exc())
         return {"embedding_search_top10": f"정보 추출 실패: {str(e)}", 
                 "embedding_search_top10_with_score": f"정보 추출 실패: {str(e)}", 
-                "llm_top1": f"정보 추출 실패: {str(e)}"}
+                "llm_top1": f"정보 추출 실패: {str(e)}",
+                "embedding_total_tokens": "오류",
+                "reranker_total_tokens": "오류"}
 
 # 탭 생성
 tab1, tab2 = st.tabs(["배치 테스트", "단일 테스트"])
@@ -542,6 +565,8 @@ with tab1:
                             df['embedding_search_top10'] = ""
                             df['embedding_search_top10_with_score'] = ""
                             df['llm_top1'] = ""
+                            df['embedding_total_tokens'] = ""
+                            df['reranker_total_tokens'] = ""
                             df['status'] = ""
                             
                             # 처리 결과 저장을 위한 데이터프레임 복사
@@ -557,7 +582,7 @@ with tab1:
                             with live_results_container:
                                 st.subheader("실시간 테스트 결과")
                                 live_results_table = st.empty()
-                                result_df = pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태'])
+                                result_df = pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', 'Embedding 토큰 수', 'Reranker 토큰 수', '상태'])
                                 live_results_table.dataframe(result_df)
                             
                             for i in range(0, total_questions, batch_size):
@@ -595,6 +620,8 @@ with tab1:
                                                 df.at[idx, 'embedding_search_top10'] = response["error"]
                                                 df.at[idx, 'embedding_search_top10_with_score'] = response["error"]
                                                 df.at[idx, 'llm_top1'] = response["error"]
+                                                df.at[idx, 'embedding_total_tokens'] = "오류"
+                                                df.at[idx, 'reranker_total_tokens'] = "오류"
                                                 error_log.append(f"질문 '{query}': {response['error']}")
                                                 failed += 1
                                             else:
@@ -617,6 +644,8 @@ with tab1:
                                                 df.at[idx, 'embedding_search_top10'] = info['embedding_search_top10']
                                                 df.at[idx, 'embedding_search_top10_with_score'] = info['embedding_search_top10_with_score']
                                                 df.at[idx, 'llm_top1'] = info['llm_top1']
+                                                df.at[idx, 'embedding_total_tokens'] = info['embedding_total_tokens']
+                                                df.at[idx, 'reranker_total_tokens'] = info['reranker_total_tokens']
                                                 df.at[idx, 'status'] = "성공"
                                     except Exception as e:
                                         with st.expander(f"오류 - 질문 {processed+1}/{total_questions}", expanded=True):
@@ -625,6 +654,8 @@ with tab1:
                                         df.at[idx, 'embedding_search_top10'] = f"처리 중 오류: {str(e)}"
                                         df.at[idx, 'embedding_search_top10_with_score'] = f"처리 중 오류: {str(e)}"
                                         df.at[idx, 'llm_top1'] = f"처리 중 오류: {str(e)}"
+                                        df.at[idx, 'embedding_total_tokens'] = "오류"
+                                        df.at[idx, 'reranker_total_tokens'] = "오류"
                                         error_log.append(f"질문 '{query}': 처리 중 오류 - {str(e)}")
                                         failed += 1
                                     
@@ -636,6 +667,8 @@ with tab1:
                                         '질문': query,
                                         'Top 10 검색 결과 (intent & score)': df.at[idx, 'embedding_search_top10_with_score'],
                                         'Top 1 재순위화 결과 (answer)': df.at[idx, 'llm_top1'],
+                                        'Embedding 토큰 수': df.at[idx, 'embedding_total_tokens'],
+                                        'Reranker 토큰 수': df.at[idx, 'reranker_total_tokens'],
                                         '상태': df.at[idx, 'status']
                                     }
                                     result_df = pd.concat([result_df, pd.DataFrame([new_row])], ignore_index=True)
@@ -645,8 +678,8 @@ with tab1:
                                     if processed % 10 == 0 or processed == total_questions:
                                         temp_output = BytesIO()
                                         with pd.ExcelWriter(temp_output, engine='xlsxwriter') as writer:
-                                            display_df = df[['question', 'embedding_search_top10_with_score', 'llm_top1', 'status']]
-                                            display_df.columns = ['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태']
+                                            display_df = df[['question', 'embedding_search_top10_with_score', 'llm_top1', 'embedding_total_tokens', 'reranker_total_tokens', 'status']]
+                                            display_df.columns = ['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', 'Embedding 토큰 수', 'Reranker 토큰 수', '상태']
                                             display_df.to_excel(writer, index=False, sheet_name='API 테스트 결과')
                                         st.session_state.temp_results = temp_output.getvalue()
                                         st.session_state.temp_filename = f"api_test_partial_results_{processed}of{total_questions}.xlsx"
@@ -704,6 +737,8 @@ with tab1:
                                 result_dfs[dataset][f'{dataset}_embedding_search_top10'] = ""
                                 result_dfs[dataset][f'{dataset}_embedding_search_top10_with_score'] = ""
                                 result_dfs[dataset][f'{dataset}_llm_top1'] = ""
+                                result_dfs[dataset][f'{dataset}_embedding_total_tokens'] = ""
+                                result_dfs[dataset][f'{dataset}_reranker_total_tokens'] = ""
                                 result_dfs[dataset][f'{dataset}_status'] = ""
                             
                             # 합쳐진 결과 데이터프레임 초기화
@@ -719,7 +754,7 @@ with tab1:
                                 for i, dataset in enumerate(batch_selected_dataset_names):
                                     with tabs[i]:
                                         live_results_tables[dataset] = st.empty()
-                                        live_results_tables[dataset].dataframe(pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태']))
+                                        live_results_tables[dataset].dataframe(pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', 'Embedding 토큰 수', 'Reranker 토큰 수', '상태']))
                                 
                                 # 통합 결과 테이블 초기화
                                 with tabs[-1]:
@@ -735,12 +770,15 @@ with tab1:
                             # 데이터셋별 실시간 결과 초기화
                             live_dataset_results = {}
                             for dataset in batch_selected_dataset_names:
-                                live_dataset_results[dataset] = pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태'])
+                                live_dataset_results[dataset] = pd.DataFrame(columns=['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', 'Embedding 토큰 수', 'Reranker 토큰 수', '상태'])
                             
                             # 통합 결과 초기화
                             live_merged_results = pd.DataFrame(columns=['질문'] + [f"{dataset}_embedding_search_top10" for dataset in batch_selected_dataset_names] + 
                                                                      [f"{dataset}_embedding_search_top10_with_score" for dataset in batch_selected_dataset_names] + 
-                                                                     [f"{dataset}_llm_top1" for dataset in batch_selected_dataset_names])
+                                                                     [f"{dataset}_llm_top1" for dataset in batch_selected_dataset_names] +
+                                                                     [f"{dataset}_embedding_total_tokens" for dataset in batch_selected_dataset_names] +
+                                                                     [f"{dataset}_reranker_total_tokens" for dataset in batch_selected_dataset_names] +
+                                                                     [f"{dataset}_status" for dataset in batch_selected_dataset_names])
                             
                             for i in range(0, len(df), batch_size):
                                 if st.session_state.stop_processing:
@@ -783,6 +821,8 @@ with tab1:
                                                     result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10'] = response["error"]
                                                     result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10_with_score'] = response["error"]
                                                     result_dfs[dataset].at[idx, f'{dataset}_llm_top1'] = response["error"]
+                                                    result_dfs[dataset].at[idx, f'{dataset}_embedding_total_tokens'] = "오류"
+                                                    result_dfs[dataset].at[idx, f'{dataset}_reranker_total_tokens'] = "오류"
                                                     error_log.append(f"데이터셋 {dataset}, 질문 '{query}': {response['error']}")
                                                     failed += 1
                                                     
@@ -811,6 +851,8 @@ with tab1:
                                                     result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10'] = info['embedding_search_top10']
                                                     result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10_with_score'] = info['embedding_search_top10_with_score']
                                                     result_dfs[dataset].at[idx, f'{dataset}_llm_top1'] = info['llm_top1']
+                                                    result_dfs[dataset].at[idx, f'{dataset}_embedding_total_tokens'] = info['embedding_total_tokens']
+                                                    result_dfs[dataset].at[idx, f'{dataset}_reranker_total_tokens'] = info['reranker_total_tokens']
                                                     result_dfs[dataset].at[idx, f'{dataset}_status'] = "성공"
                                         except Exception as e:
                                             with st.expander(f"오류 - 질문 {idx+1}/{len(df)} - {dataset}", expanded=True):
@@ -819,6 +861,8 @@ with tab1:
                                             result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10'] = f"처리 중 오류: {str(e)}"
                                             result_dfs[dataset].at[idx, f'{dataset}_embedding_search_top10_with_score'] = f"처리 중 오류: {str(e)}"
                                             result_dfs[dataset].at[idx, f'{dataset}_llm_top1'] = f"처리 중 오류: {str(e)}"
+                                            result_dfs[dataset].at[idx, f'{dataset}_embedding_total_tokens'] = "오류"
+                                            result_dfs[dataset].at[idx, f'{dataset}_reranker_total_tokens'] = "오류"
                                             error_log.append(f"데이터셋 {dataset}, 질문 '{query}': 처리 중 오류 - {str(e)}")
                                             failed += 1
                                             
@@ -832,6 +876,8 @@ with tab1:
                                             merged_df.at[idx, f'{dataset}_embedding_search_top10'] = f"처리 중 오류: {str(e)}"
                                             merged_df.at[idx, f'{dataset}_embedding_search_top10_with_score'] = f"처리 중 오류: {str(e)}"
                                             merged_df.at[idx, f'{dataset}_llm_top1'] = f"처리 중 오류: {str(e)}"
+                                            merged_df.at[idx, f'{dataset}_embedding_total_tokens'] = "오류"
+                                            merged_df.at[idx, f'{dataset}_reranker_total_tokens'] = "오류"
                                             merged_df.at[idx, f'{dataset}_status'] = "오류"
                                         
                                     # 데이터셋별 실시간 결과 업데이트
@@ -839,6 +885,8 @@ with tab1:
                                         '질문': query,
                                         'Top 10 검색 결과 (intent & score)': embedding_search_with_score,
                                         'Top 1 재순위화 결과 (answer)': llm_result,
+                                        'Embedding 토큰 수': df.at[idx, 'embedding_total_tokens'],
+                                        'Reranker 토큰 수': df.at[idx, 'reranker_total_tokens'],
                                         '상태': status
                                     }
                                     live_dataset_results[dataset] = pd.concat([live_dataset_results[dataset], pd.DataFrame([new_row])], ignore_index=True)
@@ -848,6 +896,8 @@ with tab1:
                                     merged_row[f"{dataset}_embedding_search_top10"] = embedding_search
                                     merged_row[f"{dataset}_embedding_search_top10_with_score"] = embedding_search_with_score
                                     merged_row[f"{dataset}_llm_top1"] = llm_result
+                                    merged_row[f"{dataset}_embedding_total_tokens"] = df.at[idx, 'embedding_total_tokens']
+                                    merged_row[f"{dataset}_reranker_total_tokens"] = df.at[idx, 'reranker_total_tokens']
                                     
                                     processed += 1
                                     progress_bar.progress(processed / total_tasks)
@@ -893,8 +943,8 @@ with tab1:
                                 
                                 # 각 데이터셋별 결과 시트
                                 for dataset in batch_selected_dataset_names:
-                                    display_df = result_dfs[dataset][['question', f'{dataset}_embedding_search_top10_with_score', f'{dataset}_llm_top1', f'{dataset}_status']]
-                                    display_df.columns = ['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', '상태']
+                                    display_df = result_dfs[dataset][['question', f'{dataset}_embedding_search_top10_with_score', f'{dataset}_llm_top1', f'{dataset}_embedding_total_tokens', f'{dataset}_reranker_total_tokens', f'{dataset}_status']]
+                                    display_df.columns = ['질문', 'Top 10 검색 결과 (intent & score)', 'Top 1 재순위화 결과 (answer)', 'Embedding 토큰 수', 'Reranker 토큰 수', '상태']
                                     display_df.to_excel(writer, index=False, sheet_name=f'{dataset} 결과')
                             
                             st.download_button(
@@ -1072,7 +1122,9 @@ with tab2:
                                 result_df = pd.DataFrame({
                                     "질문": [query],
                                     "Top 10 검색 결과 (intent & score)": [top10_text],
-                                    "Top 1 재순위화 결과 (answer)": [top1_answer]
+                                    "Top 1 재순위화 결과 (answer)": [top1_answer],
+                                    "Embedding 토큰 수": [intent_data.get("token_usage", {}).get("embedding_total_tokens", "정보 없음")],
+                                    "Reranker 토큰 수": [intent_data.get("token_usage", {}).get("reranker_total_tokens", "정보 없음")]
                                 })
                                 
                                 # HTML 태그가 적용되도록 unsafe_allow_html=True 설정
@@ -1141,7 +1193,9 @@ with tab2:
                         result_df = pd.DataFrame({
                             "질문": [query],
                             "Top 10 검색 결과 (intent & score)": [top10_text],
-                            "Top 1 재순위화 결과 (answer)": [top1_answer]
+                            "Top 1 재순위화 결과 (answer)": [top1_answer],
+                            "Embedding 토큰 수": [intent_data.get("token_usage", {}).get("embedding_total_tokens", "정보 없음")],
+                            "Reranker 토큰 수": [intent_data.get("token_usage", {}).get("reranker_total_tokens", "정보 없음")]
                         })
                         
                         # HTML 태그가 적용되도록 unsafe_allow_html=True 설정
@@ -1204,7 +1258,9 @@ with tab2:
                                 row = {
                                     "데이터셋": dataset_name,
                                     "Top 10 검색 결과 (intent & score)": response["error"],
-                                    "Top 1 재순위화 결과 (answer)": response["error"]
+                                    "Top 1 재순위화 결과 (answer)": response["error"],
+                                    "Embedding 토큰 수": "오류",
+                                    "Reranker 토큰 수": "오류"
                                 }
                             else:
                                 # intent_data 객체 확인 (중첩 구조 처리)
@@ -1233,7 +1289,9 @@ with tab2:
                                 row = {
                                     "데이터셋": dataset_name,
                                     "Top 10 검색 결과 (intent & score)": top10_text,
-                                    "Top 1 재순위화 결과 (answer)": top1_answer
+                                    "Top 1 재순위화 결과 (answer)": top1_answer,
+                                    "Embedding 토큰 수": intent_data.get("token_usage", {}).get("embedding_total_tokens", "정보 없음"),
+                                    "Reranker 토큰 수": intent_data.get("token_usage", {}).get("reranker_total_tokens", "정보 없음")
                                 }
                             
                             comparison_data.append(row)
